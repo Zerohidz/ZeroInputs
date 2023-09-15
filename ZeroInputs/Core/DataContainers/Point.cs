@@ -2,13 +2,12 @@
 
 namespace ZeroInputs.Core.DataContainers;
 
-[StructLayout(LayoutKind.Sequential)]
-public struct MousePoint
+public struct Point
 {
     public int X;
     public int Y;
 
-    public MousePoint(int x, int y)
+    public Point(int x, int y)
     {
         X = x;
         Y = y;
