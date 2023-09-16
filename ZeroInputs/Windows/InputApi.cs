@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using ZeroInputs.Core;
@@ -12,27 +13,27 @@ public partial class InputApi : IInputApi
 {
     private const string User32 = "user32.dll";
     private const int KBInputSize = 40; // This is fixed, don't change it
-    private readonly Dictionary<char, bool> _previousKeyStates = new();
-    private readonly Dictionary<char, bool> _currentKeyStates = new();
+    private readonly Dictionary<short, bool> _previousKeyStates = new();
+    private readonly Dictionary<short, bool> _currentKeyStates = new();
 
     #region LibraryImports
     [LibraryImport("user32.dll")]
     public static partial int GetAsyncKeyState(Int32 i);
 
+    [DllImport("user32.dll")]
+    public static extern short VkKeyScanEx(char ch, IntPtr dwhkl);
+
     [LibraryImport("user32.dll")]
     public static partial IntPtr GetForegroundWindow();
 
     [LibraryImport("user32.dll")]
-    public static partial IntPtr GetKeyboardState(byte[] lpKeyCodetate);
+    public static partial IntPtr GetKeyboardState(byte[] lpKeyState);
 
     [LibraryImport("user32.dll", SetLastError = true)]
     public static partial uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
     [LibraryImport("user32.dll", SetLastError = true)]
     public static partial uint GetKeyboardLayout(uint idThread);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern int ToUnicodeEx(uint wVirtKey, uint wScanCode, byte[] lpKeyCodetate, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff, int cchBuff, uint wFlags, uint dwhkl);
 
     [LibraryImport(User32)]
     private static partial uint SendInput(uint nInputs, KeyboardInput[] pInputs, int cbSize);
@@ -53,16 +54,24 @@ public partial class InputApi : IInputApi
     #endregion
 
     #region EssentialFunctions
+    public InputApi()
+    {
+        for (short vKey = 0; vKey < 256; vKey++)
+        {
+            _previousKeyStates[vKey] = false;
+            _currentKeyStates[vKey] = false;
+        }
+    }
     /// <summary>
     /// Updates the key states information, use this method inside a loop
     /// </summary>
     public void Update()
     {
-        // TODO: new logic
-        foreach (var key in _currentKeyStates.Keys)
+        // TODO: GetKeyboardState() burada iş görebilir
+        for (short vk = 0; vk < 256; vk++)
         {
-            _previousKeyStates[key] = _currentKeyStates[key];
-            _currentKeyStates[key] = GetAsyncKeyState(key) != 0;
+            _previousKeyStates[vk] = _currentKeyStates[vk];
+            _currentKeyStates[vk] = (GetAsyncKeyState(vk) & 0x8000) != 0;
         }
     }
     #endregion
@@ -167,60 +176,85 @@ public partial class InputApi : IInputApi
     #region KeyInformation
     public bool IsKeyDown(char key)
     {
-        return _currentKeyStates[key];
+        uint keyboardLocaleId = GetKeyboardLocaleId();
+        short vKeyCode = VkKeyScanEx(key, (nint)keyboardLocaleId);
+        if (vKeyCode == -1)
+            return false;
+
+        return _currentKeyStates[vKeyCode];
     }
 
-    public bool IsCapsOn()
+    public bool IsCapsLockOn()
     {
+        // TODO: is caps on
         return true;
     }
 
     public bool IsShiftDown()
     {
-        return true;
+        return IsKeyDown(KeyCode.Shift);
     }
 
     public bool IsCtrlDown()
     {
-        return true;
+        return IsKeyDown(KeyCode.Control);
     }
 
     public bool IsKeyJustBecameDown(char key)
     {
-        //bool isUpper;
-        //if (char.IsLower(key))
-        //    key = char.ToUpper(key);
-        //else
-        //    isUpper = true;
+        uint keyboardLocaleId = GetKeyboardLocaleId();
+        short vKeyCode = VkKeyScanEx(key, (nint)keyboardLocaleId);
+        if (vKeyCode == -1)
+            return false;
 
-        return _currentKeyStates[key] && !_previousKeyStates[key];
+        return _currentKeyStates[vKeyCode] && !_previousKeyStates[vKeyCode];
     }
 
     public bool IsKeyJustBecameUp(char key)
     {
-        //bool isUpper;
-        //if (char.IsLower(key))
-        //    key = char.ToUpper(key);
-        //else
-        //    isUpper = true;
+        uint keyboardLocaleId = GetKeyboardLocaleId();
+        short vKeyCode = VkKeyScanEx(key, (nint)keyboardLocaleId);
+        if (vKeyCode == -1)
+            return false;
 
-        return !_currentKeyStates[key] && _previousKeyStates[key];
+        return !_currentKeyStates[vKeyCode] && _previousKeyStates[vKeyCode];
     }
 
     public bool IsKeyDown(KeyCode keyCode)
-       => IsKeyDown((char)keyCode);
+    {
+        return _currentKeyStates[(short)keyCode];
+    }
 
     public bool IsKeyUp(char key)
         => !IsKeyDown(key);
 
     public bool IsKeyUp(KeyCode keyCode)
-        => IsKeyUp((char)keyCode);
+        => !IsKeyDown(keyCode);
 
     public bool IsKeyJustBecameDown(KeyCode keyCode)
-        => IsKeyJustBecameDown((char)keyCode);
+    {
+        return _currentKeyStates[(short)keyCode] && !_previousKeyStates[(short)keyCode];
+    }
 
     public bool IsKeyJustBecameUp(KeyCode keyCode)
-        => IsKeyJustBecameUp((char)keyCode);
+    {
+        return !_currentKeyStates[(short)keyCode] && _previousKeyStates[(short)keyCode];
+    }
+
+    private uint GetKeyboardLocaleId()
+    {
+        uint dwProcessId;
+        IntPtr hWindowHandle = GetForegroundWindow();
+        uint dwThreadId = GetWindowThreadProcessId(hWindowHandle, out dwProcessId);
+        return GetKeyboardLayout(dwThreadId); //retrieves the input locale identifier
+    }
+
+    private byte[] GetKeyboardState()
+    {
+        byte[] kState = new byte[256];
+        GetKeyboardState(kState); //retrieves the status of all virtual KeyCode
+        return kState;
+    }
     #endregion
 
     #region KeySimulation

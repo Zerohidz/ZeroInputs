@@ -28,7 +28,7 @@ public interface IInputApi
     public bool IsKeyJustBecameUp(KeyCode key);
     public bool IsKeyJustBecameDown(char key);
     public bool IsKeyJustBecameDown(KeyCode key);
-    public bool IsCapsOn();
+    public bool IsCapsLockOn();
     public bool IsCtrlDown();
     public bool IsShiftDown();
 
