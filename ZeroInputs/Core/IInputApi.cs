@@ -1,5 +1,5 @@
 ﻿using ZeroInputs.Core.DataContainers;
-using ZeroInputs.Core.Enums;
+using ZeroInputs.Windows.Enums;
 
 namespace ZeroInputs.Core;
 
@@ -28,7 +28,15 @@ public interface IInputApi
     public bool IsKeyJustBecameUp(KeyCode key);
     public bool IsKeyJustBecameDown(char key);
     public bool IsKeyJustBecameDown(KeyCode key);
+    public bool IsAnyKeyDown();
+    public bool IsAnyKeyDown(out KeyCode[] keys);
+    public bool IsAnyKeyJustBecameUp();
+    public bool IsAnyKeyJustBecameUp(out KeyCode[] keys);
+    public bool IsAnyKeyJustBecameDown();
+    public bool IsAnyKeyJustBecameDown(out KeyCode[] keys);
     public bool IsCapsLockOn();
+    public bool IsNumLockOn();
+    public bool IsScrollLockOn();
     public bool IsCtrlDown();
     public bool IsShiftDown();
 

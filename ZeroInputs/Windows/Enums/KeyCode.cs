@@ -1,4 +1,4 @@
-﻿namespace ZeroInputs.Core.Enums;
+﻿namespace ZeroInputs.Windows.Enums;
 
 public enum KeyCode
 {
