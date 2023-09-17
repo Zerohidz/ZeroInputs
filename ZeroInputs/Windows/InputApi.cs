@@ -4,6 +4,7 @@ using System.Text;
 using ZeroInputs.Core;
 using ZeroInputs.Core.DataContainers;
 using ZeroInputs.Windows.Enums;
+using static System.Runtime.CompilerServices.RuntimeHelpers;
 
 namespace ZeroInputs.Windows;
 
@@ -14,26 +15,29 @@ public partial class InputApi : IInputApi
     private const string User32 = "user32.dll";
     private const int KBInputSize = 40; // This is fixed, don't change it
     private const int VkCount = 256;
-    private readonly Dictionary<short, bool> _previousKeyStates = new();
-    private readonly Dictionary<short, bool> _currentKeyStates = new();
+    private readonly byte[] _previousKeyStates = new byte[VkCount];
+    private readonly byte[] _currentKeyStates = new byte[VkCount];
 
     #region LibraryImports
-    [DllImport("user32.dll")]
+    [DllImport(User32)]
     public static extern short GetAsyncKeyState(int vk);
 
-    [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true, CallingConvention = CallingConvention.Winapi)]
+    [DllImport(User32)]
+    private static extern bool GetKeyboardState(byte[] keys);
+
+    [DllImport(User32, CharSet = CharSet.Auto, ExactSpelling = true, CallingConvention = CallingConvention.Winapi)]
     public static extern short GetKeyState(int keyCode);
 
-    [DllImport("user32.dll")]
+    [DllImport(User32)]
     public static extern short VkKeyScanEx(char ch, IntPtr dwhkl);
 
-    [DllImport("user32.dll")]
+    [DllImport(User32)]
     public static extern IntPtr GetForegroundWindow();
 
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport(User32, SetLastError = true)]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport(User32, SetLastError = true)]
     public static extern uint GetKeyboardLayout(uint idThread);
 
     [DllImport(User32)]
@@ -50,30 +54,19 @@ public partial class InputApi : IInputApi
     [DllImport(User32)]
     private static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
 
-    [DllImport("user32.dll")]
+    [DllImport(User32)]
     private static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
     #endregion
 
     #region EssentialFunctions
-    public InputApi()
-    {
-        for (short vKey = 0; vKey < VkCount; vKey++)
-        {
-            _previousKeyStates[vKey] = false;
-            _currentKeyStates[vKey] = false;
-        }
-    }
-
     /// <summary>
     /// Updates the key states information, use this method inside a loop
     /// </summary>
     public void Update()
     {
-        for (short vk = 0; vk < VkCount; vk++)
-        {
-            _previousKeyStates[vk] = _currentKeyStates[vk];
-            _currentKeyStates[vk] = (GetAsyncKeyState(vk) & 0x8000) != 0;
-        }
+        GetKeyState(1); // To activate GetKeyboardState()
+        _currentKeyStates.CopyTo(_previousKeyStates, 0);
+        GetKeyboardState(_currentKeyStates);
     }
     #endregion
 
@@ -179,12 +172,12 @@ public partial class InputApi : IInputApi
     {
         short vKeyCode = CharToVirtualKeyCode(key);
 
-        return _currentKeyStates[vKeyCode];
+        return (_currentKeyStates[vKeyCode] & 0x8000) == 1;
     }
 
     public bool IsKeyDown(KeyCode keyCode)
     {
-        return _currentKeyStates[(short)keyCode];
+        return (_currentKeyStates[(short)keyCode] & 0x8000) == 1;
     }
 
     public bool IsKeyUp(char key)
@@ -197,22 +190,23 @@ public partial class InputApi : IInputApi
     {
         short vKeyCode = CharToVirtualKeyCode(key);
 
-        return _currentKeyStates[vKeyCode] && !_previousKeyStates[vKeyCode];
+        return (_currentKeyStates[vKeyCode] & 0x8000) == 1 && (_previousKeyStates[vKeyCode] & 0x8000) == 0;
     }
+
     public bool IsKeyJustBecameDown(KeyCode keyCode)
     {
-        return _currentKeyStates[(short)keyCode] && !_previousKeyStates[(short)keyCode];
+        return (_currentKeyStates[(short)keyCode] & 0x8000) == 1 && (_previousKeyStates[(short)keyCode] & 0x8000) == 0;
     }
 
     public bool IsKeyJustBecameUp(char key)
     {
         short vKeyCode = CharToVirtualKeyCode(key);
 
-        return !_currentKeyStates[vKeyCode] && _previousKeyStates[vKeyCode];
+        return (_currentKeyStates[vKeyCode] & 0x8000) == 0 && (_previousKeyStates[vKeyCode] & 0x8000) == 1;
     }
     public bool IsKeyJustBecameUp(KeyCode keyCode)
     {
-        return !_currentKeyStates[(short)keyCode] && _previousKeyStates[(short)keyCode];
+        return (_currentKeyStates[(short)keyCode] & 0x8000) == 0 && (_previousKeyStates[(short)keyCode] & 0x8000) == 1;
     }
 
     public bool IsAnyKeyDown()
@@ -388,13 +382,13 @@ public partial class InputApi : IInputApi
 
         throw new NotImplementedException();
 
-        //[DllImport("User32.dll")]
+        //[DllImport(User32)]
         //private static extern bool SetForegroundWindow(IntPtr hWnd);
 
-        //[DllImport("user32.dll", CharSet = CharSet.Auto)]
+        //[DllImport(User32, CharSet = CharSet.Auto)]
         //static public extern IntPtr GetForegroundWindow();
 
-        //[DllImport("user32.dll")]
+        //[DllImport(User32)]
         //static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo);
 
 
