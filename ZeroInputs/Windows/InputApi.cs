@@ -64,7 +64,8 @@ public partial class InputApi : IInputApi
     /// </summary>
     public void Update()
     {
-        GetKeyState(1); // To activate GetKeyboardState()
+        GetKeyState(0); // This is needed to activate GetKeyboardState()
+
         _currentKeyStates.CopyTo(_previousKeyStates, 0);
         GetKeyboardState(_currentKeyStates);
     }
@@ -172,12 +173,12 @@ public partial class InputApi : IInputApi
     {
         short vKeyCode = CharToVirtualKeyCode(key);
 
-        return (_currentKeyStates[vKeyCode] & 0x8000) == 1;
+        return (_currentKeyStates[vKeyCode] & 0x80) != 0;
     }
 
     public bool IsKeyDown(KeyCode keyCode)
     {
-        return (_currentKeyStates[(short)keyCode] & 0x8000) == 1;
+        return (_currentKeyStates[(short)keyCode] & 0x80) != 0;
     }
 
     public bool IsKeyUp(char key)
@@ -190,23 +191,23 @@ public partial class InputApi : IInputApi
     {
         short vKeyCode = CharToVirtualKeyCode(key);
 
-        return (_currentKeyStates[vKeyCode] & 0x8000) == 1 && (_previousKeyStates[vKeyCode] & 0x8000) == 0;
+        return (_currentKeyStates[vKeyCode] & 0x80) != 0 && (_previousKeyStates[vKeyCode] & 0x80) == 0;
     }
 
     public bool IsKeyJustBecameDown(KeyCode keyCode)
     {
-        return (_currentKeyStates[(short)keyCode] & 0x8000) == 1 && (_previousKeyStates[(short)keyCode] & 0x8000) == 0;
+        return (_currentKeyStates[(short)keyCode] & 0x80) != 0 && (_previousKeyStates[(short)keyCode] & 0x80) == 0;
     }
 
     public bool IsKeyJustBecameUp(char key)
     {
         short vKeyCode = CharToVirtualKeyCode(key);
 
-        return (_currentKeyStates[vKeyCode] & 0x8000) == 0 && (_previousKeyStates[vKeyCode] & 0x8000) == 1;
+        return (_currentKeyStates[vKeyCode] & 0x80) == 0 && (_previousKeyStates[vKeyCode] & 0x80) != 0;
     }
     public bool IsKeyJustBecameUp(KeyCode keyCode)
     {
-        return (_currentKeyStates[(short)keyCode] & 0x8000) == 0 && (_previousKeyStates[(short)keyCode] & 0x8000) == 1;
+        return (_currentKeyStates[(short)keyCode] & 0x80) == 0 && (_previousKeyStates[(short)keyCode] & 0x80) != 0;
     }
 
     public bool IsAnyKeyDown()
@@ -318,7 +319,7 @@ public partial class InputApi : IInputApi
     {
         KeyboardInput[] inputs = new KeyboardInput[text.Length * 2];
         for (int i = 0; i < text.Length * 2; i++)
-            ConfigureInput(ref inputs[i], text[i / 2], keyUp: i % 2 == 1);
+            ConfigureInput(ref inputs[i], text[i / 2], keyUp: i % 2 != 0);
 
         if (SendInput((uint)inputs.Length, inputs, KBInputSize) == 0)
             throw new SendKeysException();
