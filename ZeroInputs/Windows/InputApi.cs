@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using ZeroInputs.Core;
 using ZeroInputs.Core.DataContainers;
@@ -6,6 +7,7 @@ using ZeroInputs.Windows.Enums;
 
 namespace ZeroInputs.Windows;
 
+// TODO: onMouseWheelScroll
 
 public partial class InputApi : IInputApi
 {
@@ -258,14 +260,19 @@ public partial class InputApi : IInputApi
         return (GetKeyState((int)KeyCode.ScrollLock) & 0x0001) != 0;
     }
 
+    public bool IsCtrlDown()
+    {
+        return IsKeyDown(KeyCode.Control);
+    }
+
     public bool IsShiftDown()
     {
         return IsKeyDown(KeyCode.Shift);
     }
 
-    public bool IsCtrlDown()
+    public bool IsAltDown()
     {
-        return IsKeyDown(KeyCode.Control);
+        return IsKeyDown(KeyCode.Alt);
     }
 
     private bool AnyKeyCheck(Func<KeyCode, bool> checker)

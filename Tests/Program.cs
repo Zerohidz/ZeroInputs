@@ -1,5 +1,4 @@
 ﻿using ZeroInputs.Windows;
-using ZeroInputs.Windows.Enums;
 
 namespace Tests;
 
@@ -13,8 +12,7 @@ internal class Program
         {
             api.Update();
 
-            if (api.IsAnyKeyJustBecameDown())
-                Console.WriteLine("Herhangi bi tuşa basıldı");
+
         }
     }
 }

@@ -39,6 +39,7 @@ public interface IInputApi
     public bool IsScrollLockOn();
     public bool IsCtrlDown();
     public bool IsShiftDown();
+    public bool IsAltDown();
 
     public void Copy();
     public void Copy(string text);
