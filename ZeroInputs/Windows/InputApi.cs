@@ -14,7 +14,7 @@ namespace ZeroInputs.Windows;
 public partial class InputApi : IInputApi
 {
     private const string User32 = "user32.dll";
-    private const int KBInputSize = 40; // This is fixed, don't change it
+    private const int KBInputSize = 40;
     private const int VkCount = 256;
     private readonly byte[] _previousKeyStates = new byte[VkCount];
     private readonly byte[] _currentKeyStates = new byte[VkCount];
@@ -434,15 +434,16 @@ public partial class InputApi : IInputApi
             Type = 1,
             Vk = 0,
             Scan = key,
-            Flags = 0x0004,
+            Flags = (uint)KeyEventFlags.Unicode,
             Time = 0,
             ExtraInfo = IntPtr.Zero,
         };
 
-        if ((key & 0xFF00) == 0xE000) // if extended
-            input.Flags |= 0x0001;
-        if (keyUp) // if up
-            input.Flags |= 0x0002;
+        if (keyUp)
+            input.Flags |= (uint)KeyEventFlags.KeyUp;
+
+        if ((key & 0xFF00) == 0xE000) // Check the high byte
+            input.Flags |= (uint)KeyEventFlags.ExtendedKey;
     }
 
     private void ConfigureForVirtualKey(ref KeyboardInput input, char key, bool keyUp)
@@ -457,10 +458,11 @@ public partial class InputApi : IInputApi
             ExtraInfo = IntPtr.Zero,
         };
 
-        if ((key & 0xFF00) == 0xE000) // if extended
-            input.Flags |= 0x0001;
-        if (keyUp) // if up
-            input.Flags |= 0x0002;
+        if (keyUp)
+            input.Flags |= (uint)KeyEventFlags.KeyUp;
+
+        if ((key & 0xFF00) == 0xE000) // Check the high byte
+            input.Flags |= (uint)KeyEventFlags.ExtendedKey;
     }
     #endregion
 
