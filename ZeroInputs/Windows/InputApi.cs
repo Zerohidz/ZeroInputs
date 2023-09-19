@@ -9,6 +9,7 @@ using static System.Runtime.CompilerServices.RuntimeHelpers;
 namespace ZeroInputs.Windows;
 
 // TODO: onMouseWheelScroll
+// https://github.com/michaelnoonan/inputsimulator/tree/master
 
 public partial class InputApi : IInputApi
 {
@@ -187,57 +188,57 @@ public partial class InputApi : IInputApi
     public bool IsKeyUp(KeyCode keyCode)
         => !IsKeyDown(keyCode);
 
-    public bool IsKeyJustBecameDown(char key)
+    public bool IsKeyPressed(char key)
     {
         short vKeyCode = CharToVirtualKeyCode(key);
 
         return (_currentKeyStates[vKeyCode] & 0x80) != 0 && (_previousKeyStates[vKeyCode] & 0x80) == 0;
     }
 
-    public bool IsKeyJustBecameDown(KeyCode keyCode)
+    public bool IsKeyPressed(KeyCode keyCode)
     {
         return (_currentKeyStates[(short)keyCode] & 0x80) != 0 && (_previousKeyStates[(short)keyCode] & 0x80) == 0;
     }
 
-    public bool IsKeyJustBecameUp(char key)
+    public bool IsKeyReleased(char key)
     {
         short vKeyCode = CharToVirtualKeyCode(key);
 
         return (_currentKeyStates[vKeyCode] & 0x80) == 0 && (_previousKeyStates[vKeyCode] & 0x80) != 0;
     }
-    public bool IsKeyJustBecameUp(KeyCode keyCode)
+    public bool IsKeyReleased(KeyCode keyCode)
     {
         return (_currentKeyStates[(short)keyCode] & 0x80) == 0 && (_previousKeyStates[(short)keyCode] & 0x80) != 0;
     }
 
     public bool IsAnyKeyDown()
     {
-        return AnyKeyCheck(IsKeyDown);
+        return IsAnyKeyFiltered(IsKeyDown);
     }
-    
+
     public bool IsAnyKeyDown(out KeyCode[] keys)
     {
-        return AnyKeyCheck(IsKeyDown, out keys);
+        return IsAnyKeyFiltered(IsKeyDown, out keys);
     }
 
-    public bool IsAnyKeyJustBecameDown()
+    public bool IsAnyKeyPressed()
     {
-        return AnyKeyCheck(IsKeyJustBecameDown);
+        return IsAnyKeyFiltered(IsKeyPressed);
     }
 
-    public bool IsAnyKeyJustBecameDown(out KeyCode[] keys)
+    public bool IsAnyKeyPressed(out KeyCode[] keys)
     {
-        return AnyKeyCheck(IsKeyJustBecameDown, out keys);
+        return IsAnyKeyFiltered(IsKeyPressed, out keys);
     }
 
-    public bool IsAnyKeyJustBecameUp()
+    public bool IsAnyKeyReleased()
     {
-        return AnyKeyCheck(IsKeyJustBecameUp);
+        return IsAnyKeyFiltered(IsKeyReleased);
     }
 
-    public bool IsAnyKeyJustBecameUp(out KeyCode[] keys)
+    public bool IsAnyKeyReleased(out KeyCode[] keys)
     {
-        return AnyKeyCheck(IsKeyJustBecameUp, out keys);
+        return IsAnyKeyFiltered(IsKeyReleased, out keys);
     }
 
     public bool IsCapsLockOn()
@@ -270,22 +271,22 @@ public partial class InputApi : IInputApi
         return IsKeyDown(KeyCode.Alt);
     }
 
-    private bool AnyKeyCheck(Func<KeyCode, bool> checker)
+    private bool IsAnyKeyFiltered(Func<KeyCode, bool> filter)
     {
         for (short i = 0; i < VkCount; i++)
-            if (checker.Invoke((KeyCode)i))
+            if (filter.Invoke((KeyCode)i))
                 return true;
         return false;
     }
 
-    private bool AnyKeyCheck(Func<KeyCode, bool> checker, out KeyCode[] keys)
+    private bool IsAnyKeyFiltered(Func<KeyCode, bool> filter, out KeyCode[] keys)
     {
         bool result = false;
         List<KeyCode> keysList = new();
         for (short i = 0; i < VkCount; i++)
         {
             KeyCode keyCode = (KeyCode)i;
-            if (checker.Invoke(keyCode))
+            if (filter.Invoke(keyCode))
             {
                 keysList.Add(keyCode);
                 result = true;
@@ -328,7 +329,6 @@ public partial class InputApi : IInputApi
     public void KeyPress(char key)
     {
         // TODO: enter'ları basmıyor
-        // TODO: keybd_event() diye bi şey de varmış
         KeyboardInput[] inputs = new KeyboardInput[2];
         ConfigureInput(ref inputs[0], key);
         ConfigureInput(ref inputs[1], key, keyUp: true);
@@ -433,10 +433,15 @@ public partial class InputApi : IInputApi
             Type = 1,
             Vk = 0,
             Scan = key,
-            Flags = Convert.ToUInt32(keyUp ? 0x0004 | 0x0002 : 0x0004),
+            Flags = 0x0004,
             Time = 0,
             ExtraInfo = IntPtr.Zero,
         };
+
+        if ((key & 0xFF00) == 0xE000) // if extended
+            input.Flags |= 0x0001;
+        if (keyUp) // if up
+            input.Flags |= 0x0002;
     }
 
     private void ConfigureForVirtualKey(ref KeyboardInput input, char key, bool keyUp)
@@ -446,10 +451,15 @@ public partial class InputApi : IInputApi
             Type = 1,
             Vk = key,
             Scan = 0,
-            Flags = Convert.ToUInt32(keyUp ? 0x0000 | 0x0002 : 0x0000),
+            Flags = 0,
             Time = 0,
             ExtraInfo = IntPtr.Zero,
         };
+
+        if ((key & 0xFF00) == 0xE000) // if extended
+            input.Flags |= 0x0001;
+        if (keyUp) // if up
+            input.Flags |= 0x0002;
     }
     #endregion
 

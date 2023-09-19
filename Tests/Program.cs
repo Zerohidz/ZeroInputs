@@ -7,19 +7,16 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        Console.WriteLine("Press Any Key");
-
         InputApi api = new();
 
         while (true)
         {
             api.Update();
 
-            if (api.IsKeyDown(KeyCode.A))
-                Console.WriteLine(KeyCode.A);
-
-            if (api.IsCtrlDown() && api.IsKeyJustBecameDown(KeyCode.S))
-                Console.WriteLine("Kaydedildi");
+            if (api.IsKeyPressed('ş'))
+            {
+                Console.WriteLine('ş');
+            }
         }
     }
 }
