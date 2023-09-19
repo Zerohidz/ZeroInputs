@@ -13,10 +13,12 @@ internal class Program
         {
             api.Update();
 
-            if (api.IsKeyPressed('ş'))
+            if (api.IsKeyReleased(KeyCode.A))
             {
-                Console.WriteLine('ş');
+                api.KeyDown(KeyCode.Control);
+                api.KeyPress(KeyCode.S);
+                api.KeyUp(KeyCode.Control);
             }
-        }
+        } 
     }
 }

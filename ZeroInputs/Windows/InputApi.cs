@@ -256,7 +256,7 @@ public partial class InputApi : IInputApi
         return (GetKeyState((int)KeyCode.ScrollLock) & 0x0001) != 0;
     }
 
-    public bool IsCtrlDown()
+    public bool IsControlDown()
     {
         return IsKeyDown(KeyCode.Control);
     }
@@ -308,7 +308,7 @@ public partial class InputApi : IInputApi
     {
         uint keyboardLocaleId = GetKeyboardLocaleId();
         short vKeyCode = VkKeyScanEx(key, (nint)keyboardLocaleId);
-        if ((vKeyCode < 256 && -1 < vKeyCode) == false)
+        if ((vKeyCode < VkCount && -1 < vKeyCode) == false)
             throw new KeyCodeOfCharNotFoundException();
 
         return vKeyCode;
@@ -322,47 +322,42 @@ public partial class InputApi : IInputApi
         for (int i = 0; i < text.Length * 2; i++)
             ConfigureInput(ref inputs[i], text[i / 2], keyUp: i % 2 != 0);
 
-        if (SendInput((uint)inputs.Length, inputs, KBInputSize) == 0)
-            throw new SendKeysException();
+        SendInputs(inputs);
     }
 
     public void KeyPress(char key)
     {
-        // TODO: enter'ları basmıyor
         KeyboardInput[] inputs = new KeyboardInput[2];
         ConfigureInput(ref inputs[0], key);
         ConfigureInput(ref inputs[1], key, keyUp: true);
 
-        if (SendInput((uint)inputs.Length, inputs, KBInputSize) == 0)
-            throw new SendKeysException();
+        SendInputs(inputs);
     }
 
-    public void KeyDown(char key)
-    {
-        KeyboardInput[] inputs = new KeyboardInput[1];
-        ConfigureInput(ref inputs[0], key);
-
-        if (SendInput((uint)inputs.Length, inputs, KBInputSize) == 0)
-            throw new SendKeysException();
-    }
+    public void KeyPress(KeyCode key)
+        => KeyPress((char)key);
 
     public void KeyUp(char key)
     {
         KeyboardInput[] inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key, keyUp: true);
 
-        if (SendInput((uint)inputs.Length, inputs, KBInputSize) == 0)
-            throw new SendKeysException();
+        SendInputs(inputs);
     }
-
-    public void KeyPress(KeyCode key)
-        => KeyPress((char)key);
-
-    public void KeyDown(KeyCode key)
-        => KeyDown((char)key);
 
     public void KeyUp(KeyCode key)
         => KeyUp((char)key);
+
+    public void KeyDown(char key)
+    {
+        KeyboardInput[] inputs = new KeyboardInput[1];
+        ConfigureInput(ref inputs[0], key);
+
+        SendInputs(inputs);
+    }
+
+    public void KeyDown(KeyCode key)
+        => KeyDown((char)key);
 
     public void Copy()
     {
@@ -418,9 +413,15 @@ public partial class InputApi : IInputApi
         throw new NotImplementedException();
     }
 
+    private static void SendInputs(KeyboardInput[] inputs)
+    {
+        if (SendInput((uint)inputs.Length, inputs, KBInputSize) == 0)
+            throw new SendInputException();
+    }
+
     private void ConfigureInput(ref KeyboardInput input, char key, bool keyUp = false)
     {
-        if (key is '\n' or '\t')
+        if (Enum.IsDefined((KeyCode)key))
             ConfigureForVirtualKey(ref input, key, keyUp);
         else
             ConfigureForUnicode(ref input, key, keyUp);
@@ -480,7 +481,7 @@ public partial class InputApi : IInputApi
 
     #region KeyboardTypes
     [StructLayout(LayoutKind.Explicit, Size = KBInputSize, Pack = 1)]
-    internal struct KeyboardInput
+    private struct KeyboardInput
     {
         [FieldOffset(0)]
         public int Type;
@@ -498,7 +499,7 @@ public partial class InputApi : IInputApi
     #endregion
 
     #region Exceptions
-    public class SendKeysException : Exception { }
+    public class SendInputException : Exception { }
     public class KeyCodeOfCharNotFoundException : Exception { }
     #endregion
 }

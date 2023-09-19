@@ -37,7 +37,7 @@ public interface IInputApi
     public bool IsCapsLockOn();
     public bool IsNumLockOn();
     public bool IsScrollLockOn();
-    public bool IsCtrlDown();
+    public bool IsControlDown();
     public bool IsShiftDown();
     public bool IsAltDown();
 
