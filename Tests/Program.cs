@@ -15,9 +15,7 @@ internal class Program
 
             if (api.IsKeyReleased(KeyCode.A))
             {
-                api.KeyDown(KeyCode.Control);
-                api.KeyPress(KeyCode.S);
-                api.KeyUp(KeyCode.Control);
+                api.KeyPress('\n');
             }
         } 
     }

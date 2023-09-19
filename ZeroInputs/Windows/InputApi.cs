@@ -1,10 +1,9 @@
-﻿using System.Diagnostics;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using ZeroInputs.Core;
 using ZeroInputs.Core.DataContainers;
 using ZeroInputs.Windows.Enums;
-using static System.Runtime.CompilerServices.RuntimeHelpers;
 
 namespace ZeroInputs.Windows;
 
@@ -14,6 +13,7 @@ namespace ZeroInputs.Windows;
 public partial class InputApi : IInputApi
 {
     private const string User32 = "user32.dll";
+    private const string IgnoredChars = "\r";
     private const int KBInputSize = 40;
     private const int VkCount = 256;
     private readonly byte[] _previousKeyStates = new byte[VkCount];
@@ -316,9 +316,9 @@ public partial class InputApi : IInputApi
     #endregion
 
     #region KeySimulation
-    public void Type(string text)
+    public void Write(string text)
     {
-        KeyboardInput[] inputs = new KeyboardInput[text.Length * 2];
+        var inputs = new KeyboardInput[text.Length * 2];
         for (int i = 0; i < text.Length * 2; i++)
             ConfigureInput(ref inputs[i], text[i / 2], keyUp: i % 2 != 0);
 
@@ -327,37 +327,59 @@ public partial class InputApi : IInputApi
 
     public void KeyPress(char key)
     {
-        KeyboardInput[] inputs = new KeyboardInput[2];
+        if (IsIgnoredChar(key)) return;
+
+        var inputs = new KeyboardInput[2];
         ConfigureInput(ref inputs[0], key);
         ConfigureInput(ref inputs[1], key, keyUp: true);
 
         SendInputs(inputs);
     }
 
-    public void KeyPress(KeyCode key)
-        => KeyPress((char)key);
+    public void KeyPress(KeyCode keyCode)
+    {
+        var inputs = new KeyboardInput[2];
+        ConfigureInput(ref inputs[0], keyCode);
+        ConfigureInput(ref inputs[1], keyCode, keyUp: true);
+
+        SendInputs(inputs);
+    }
 
     public void KeyUp(char key)
     {
-        KeyboardInput[] inputs = new KeyboardInput[1];
+        if (IsIgnoredChar(key)) return;
+
+        var inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key, keyUp: true);
 
         SendInputs(inputs);
     }
 
-    public void KeyUp(KeyCode key)
-        => KeyUp((char)key);
+    public void KeyUp(KeyCode keyCode)
+    {
+        var inputs = new KeyboardInput[1];
+        ConfigureInput(ref inputs[0], keyCode, keyUp: true);
+
+        SendInputs(inputs);
+    }
 
     public void KeyDown(char key)
     {
-        KeyboardInput[] inputs = new KeyboardInput[1];
+        if (IsIgnoredChar(key)) return;
+
+        var inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key);
 
         SendInputs(inputs);
     }
 
-    public void KeyDown(KeyCode key)
-        => KeyDown((char)key);
+    public void KeyDown(KeyCode keyCode)
+    {
+        var inputs = new KeyboardInput[1];
+        ConfigureInput(ref inputs[0], keyCode);
+
+        SendInputs(inputs);
+    }
 
     public void Copy()
     {
@@ -413,15 +435,29 @@ public partial class InputApi : IInputApi
         throw new NotImplementedException();
     }
 
+    private bool IsIgnoredChar(char key)
+    {
+        return IgnoredChars.Contains(key);
+    }
+
     private static void SendInputs(KeyboardInput[] inputs)
     {
         if (SendInput((uint)inputs.Length, inputs, KBInputSize) == 0)
             throw new SendInputException();
     }
 
+    private void ConfigureInput(ref KeyboardInput input, KeyCode keyCode, bool keyUp = false)
+    {
+        ConfigureForVirtualKey(ref input, (char)keyCode, keyUp);
+    }
+
     private void ConfigureInput(ref KeyboardInput input, char key, bool keyUp = false)
     {
-        if (Enum.IsDefined((KeyCode)key))
+        if (key is '\n') key = (char)KeyCode.Enter;
+
+        // This if statement is necessary to prevent wrong keycoding for uppercase letters or nonletter buttons
+        // If we don't send upper character inputs as virtual keycodes, the shortcuts bound to them don't work (ex: Ctrl+S)
+        if ((!char.IsLetter(key) || char.IsUpper(key)) && Enum.IsDefined((KeyCode)key))
             ConfigureForVirtualKey(ref input, key, keyUp);
         else
             ConfigureForUnicode(ref input, key, keyUp);
