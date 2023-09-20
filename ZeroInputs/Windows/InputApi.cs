@@ -1,16 +1,13 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-using ZeroInputs.Core;
-using ZeroInputs.Core.DataContainers;
+﻿using System.Text;
 using ZeroInputs.Windows.Enums;
+using System.Runtime.InteropServices;
 
 namespace ZeroInputs.Windows;
 
 // TODO: onMouseWheelScroll
 // https://github.com/michaelnoonan/inputsimulator/tree/master
 
-public partial class InputApi : IInputApi
+public partial class InputApi : IInputDevice
 {
     private const string User32 = "user32.dll";
     private const string IgnoredChars = "\r";
@@ -89,70 +86,40 @@ public partial class InputApi : IInputApi
     public void SetMousePosition(Point point)
         => SetCursorPos(point.X, point.Y);
 
-    public void LeftUp()
+    public void MouseUp(MouseButton button)
     {
-        DoMouseEvent(MouseEventFlags.LeftUp);
+        MouseEventFlags flag = button switch
+        {
+            MouseButton.Left => MouseEventFlags.LeftUp,
+            MouseButton.Middle => MouseEventFlags.MiddleUp,
+            MouseButton.Right => MouseEventFlags.RightUp,
+            _ => throw new InvalidMouseButtonException(),
+        };
+        DoMouseEvent(flag);
     }
 
-    public void LeftDown()
+    public void MouseDown(MouseButton button)
     {
-        DoMouseEvent(MouseEventFlags.LeftDown);
+        MouseEventFlags flag = button switch
+        {
+            MouseButton.Left => MouseEventFlags.LeftDown,
+            MouseButton.Middle => MouseEventFlags.MiddleDown,
+            MouseButton.Right => MouseEventFlags.RightDown,
+            _ => throw new InvalidMouseButtonException(),
+        };
+        DoMouseEvent(flag);
     }
 
-    public void LeftClick()
+    public void Click(MouseButton button)
     {
-        LeftDown();
-        LeftUp();
+        MouseDown(button);
+        MouseUp(button);
     }
 
-    public void LeftClick(Point position)
+    public void Click(MouseButton button, Point position)
     {
         SetMousePosition(position);
-        LeftClick();
-    }
-
-    public void MiddleUp()
-    {
-        DoMouseEvent(MouseEventFlags.MiddleUp);
-    }
-
-    public void MiddleDown()
-    {
-        DoMouseEvent(MouseEventFlags.MiddleDown);
-    }
-
-    public void MiddleClick()
-    {
-        MiddleDown();
-        MiddleUp();
-    }
-
-    public void MiddleClick(Point position)
-    {
-        SetMousePosition(position);
-        MiddleClick();
-    }
-
-    public void RightUp()
-    {
-        DoMouseEvent(MouseEventFlags.RightUp);
-    }
-
-    public void RightDown()
-    {
-        DoMouseEvent(MouseEventFlags.RightDown);
-    }
-
-    public void RightClick()
-    {
-        RightDown();
-        RightUp();
-    }
-
-    public void RightClick(Point position)
-    {
-        SetMousePosition(position);
-        RightClick();
+        Click(button);
     }
 
     private void DoMouseEvent(MouseEventFlags flag)
@@ -177,16 +144,16 @@ public partial class InputApi : IInputApi
         return (_currentKeyStates[vKeyCode] & 0x80) != 0;
     }
 
-    public bool IsKeyDown(KeyCode keyCode)
+    public bool IsKeyDown(Key key)
     {
-        return (_currentKeyStates[(short)keyCode] & 0x80) != 0;
+        return (_currentKeyStates[(short)key] & 0x80) != 0;
     }
 
     public bool IsKeyUp(char key)
         => !IsKeyDown(key);
 
-    public bool IsKeyUp(KeyCode keyCode)
-        => !IsKeyDown(keyCode);
+    public bool IsKeyUp(Key key)
+        => !IsKeyDown(key);
 
     public bool IsKeyPressed(char key)
     {
@@ -195,9 +162,9 @@ public partial class InputApi : IInputApi
         return (_currentKeyStates[vKeyCode] & 0x80) != 0 && (_previousKeyStates[vKeyCode] & 0x80) == 0;
     }
 
-    public bool IsKeyPressed(KeyCode keyCode)
+    public bool IsKeyPressed(Key key)
     {
-        return (_currentKeyStates[(short)keyCode] & 0x80) != 0 && (_previousKeyStates[(short)keyCode] & 0x80) == 0;
+        return (_currentKeyStates[(short)key] & 0x80) != 0 && (_previousKeyStates[(short)key] & 0x80) == 0;
     }
 
     public bool IsKeyReleased(char key)
@@ -206,9 +173,9 @@ public partial class InputApi : IInputApi
 
         return (_currentKeyStates[vKeyCode] & 0x80) == 0 && (_previousKeyStates[vKeyCode] & 0x80) != 0;
     }
-    public bool IsKeyReleased(KeyCode keyCode)
+    public bool IsKeyReleased(Key key)
     {
-        return (_currentKeyStates[(short)keyCode] & 0x80) == 0 && (_previousKeyStates[(short)keyCode] & 0x80) != 0;
+        return (_currentKeyStates[(short)key] & 0x80) == 0 && (_previousKeyStates[(short)key] & 0x80) != 0;
     }
 
     public bool IsAnyKeyDown()
@@ -216,7 +183,7 @@ public partial class InputApi : IInputApi
         return IsAnyKeyFiltered(IsKeyDown);
     }
 
-    public bool IsAnyKeyDown(out KeyCode[] keys)
+    public bool IsAnyKeyDown(out Key[] keys)
     {
         return IsAnyKeyFiltered(IsKeyDown, out keys);
     }
@@ -226,7 +193,7 @@ public partial class InputApi : IInputApi
         return IsAnyKeyFiltered(IsKeyPressed);
     }
 
-    public bool IsAnyKeyPressed(out KeyCode[] keys)
+    public bool IsAnyKeyPressed(out Key[] keys)
     {
         return IsAnyKeyFiltered(IsKeyPressed, out keys);
     }
@@ -236,59 +203,44 @@ public partial class InputApi : IInputApi
         return IsAnyKeyFiltered(IsKeyReleased);
     }
 
-    public bool IsAnyKeyReleased(out KeyCode[] keys)
+    public bool IsAnyKeyReleased(out Key[] keys)
     {
         return IsAnyKeyFiltered(IsKeyReleased, out keys);
     }
 
     public bool IsCapsLockOn()
     {
-        return (GetKeyState((int)KeyCode.CapsLock) & 0x0001) != 0;
+        return (GetKeyState((int)Key.CapsLock) & 0x0001) != 0;
     }
 
     public bool IsNumLockOn()
     {
-        return (GetKeyState((int)KeyCode.NumLock) & 0x0001) != 0;
+        return (GetKeyState((int)Key.NumLock) & 0x0001) != 0;
     }
 
     public bool IsScrollLockOn()
     {
-        return (GetKeyState((int)KeyCode.ScrollLock) & 0x0001) != 0;
+        return (GetKeyState((int)Key.ScrollLock) & 0x0001) != 0;
     }
 
-    public bool IsControlDown()
-    {
-        return IsKeyDown(KeyCode.Control);
-    }
-
-    public bool IsShiftDown()
-    {
-        return IsKeyDown(KeyCode.Shift);
-    }
-
-    public bool IsAltDown()
-    {
-        return IsKeyDown(KeyCode.Alt);
-    }
-
-    private bool IsAnyKeyFiltered(Func<KeyCode, bool> filter)
+    private bool IsAnyKeyFiltered(Func<Key, bool> filter)
     {
         for (short i = 0; i < VkCount; i++)
-            if (filter.Invoke((KeyCode)i))
+            if (filter.Invoke((Key)i))
                 return true;
         return false;
     }
 
-    private bool IsAnyKeyFiltered(Func<KeyCode, bool> filter, out KeyCode[] keys)
+    private bool IsAnyKeyFiltered(Func<Key, bool> filter, out Key[] keys)
     {
         bool result = false;
-        List<KeyCode> keysList = new();
+        List<Key> keysList = new();
         for (short i = 0; i < VkCount; i++)
         {
-            KeyCode keyCode = (KeyCode)i;
-            if (filter.Invoke(keyCode))
+            Key key = (Key)i;
+            if (filter.Invoke(key))
             {
-                keysList.Add(keyCode);
+                keysList.Add(key);
                 result = true;
             }
         }
@@ -336,11 +288,11 @@ public partial class InputApi : IInputApi
         SendInputs(inputs);
     }
 
-    public void KeyPress(KeyCode keyCode)
+    public void KeyPress(Key key)
     {
         var inputs = new KeyboardInput[2];
-        ConfigureInput(ref inputs[0], keyCode);
-        ConfigureInput(ref inputs[1], keyCode, keyUp: true);
+        ConfigureInput(ref inputs[0], key);
+        ConfigureInput(ref inputs[1], key, keyUp: true);
 
         SendInputs(inputs);
     }
@@ -355,10 +307,10 @@ public partial class InputApi : IInputApi
         SendInputs(inputs);
     }
 
-    public void KeyUp(KeyCode keyCode)
+    public void KeyUp(Key key)
     {
         var inputs = new KeyboardInput[1];
-        ConfigureInput(ref inputs[0], keyCode, keyUp: true);
+        ConfigureInput(ref inputs[0], key, keyUp: true);
 
         SendInputs(inputs);
     }
@@ -373,10 +325,10 @@ public partial class InputApi : IInputApi
         SendInputs(inputs);
     }
 
-    public void KeyDown(KeyCode keyCode)
+    public void KeyDown(Key key)
     {
         var inputs = new KeyboardInput[1];
-        ConfigureInput(ref inputs[0], keyCode);
+        ConfigureInput(ref inputs[0], key);
 
         SendInputs(inputs);
     }
@@ -446,18 +398,18 @@ public partial class InputApi : IInputApi
             throw new SendInputException();
     }
 
-    private void ConfigureInput(ref KeyboardInput input, KeyCode keyCode, bool keyUp = false)
+    private void ConfigureInput(ref KeyboardInput input, Key key, bool keyUp = false)
     {
-        ConfigureForVirtualKey(ref input, (char)keyCode, keyUp);
+        ConfigureForVirtualKey(ref input, (char)key, keyUp);
     }
 
     private void ConfigureInput(ref KeyboardInput input, char key, bool keyUp = false)
     {
-        if (key is '\n') key = (char)KeyCode.Enter;
+        if (key is '\n') key = (char)Key.Enter;
 
         // This if statement is necessary to prevent wrong keycoding for uppercase letters or nonletter buttons
         // If we don't send upper character inputs as virtual keycodes, the shortcuts bound to them don't work (ex: Ctrl+S)
-        if ((!char.IsLetter(key) || char.IsUpper(key)) && Enum.IsDefined((KeyCode)key))
+        if ((!char.IsLetter(key) || char.IsUpper(key)) && Enum.IsDefined((Key)key))
             ConfigureForVirtualKey(ref input, key, keyUp);
         else
             ConfigureForUnicode(ref input, key, keyUp);
@@ -538,6 +490,7 @@ public partial class InputApi : IInputApi
 
     #region Exceptions
     public class SendInputException : Exception { }
+    public class InvalidMouseButtonException : Exception { }
     public class KeyCodeOfCharNotFoundException : Exception { }
     #endregion
 }

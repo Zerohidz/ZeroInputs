@@ -1,6 +1,6 @@
 ﻿namespace ZeroInputs.Windows.Enums;
 
-public enum KeyCode
+public enum Key
 {
     LeftMouseButton = 0x01,
     RightMouseButton = 0x02,
@@ -148,21 +148,21 @@ public enum KeyCode
     LaunchMediaSelect = 0xB5,
     LaunchApp1 = 0xB6,
     LaunchApp2 = 0xB7,
-    OEMSemicolon = 0xBA,  // For the US standard keyboard, the ;: key
-    OEMPlus = 0xBB,       // For any country/region, the + key
-    OEMComma = 0xBC,      // For any country/region, the , key
-    OEMMinus = 0xBD,      // For any country/region, the - key
-    OEMPeriod = 0xBE,     // For any country/region, the . key
-    OEMQuestion = 0xBF,   // For the US standard keyboard, the /? key
-    OEMTilde = 0xC0,      // For the US standard keyboard, the `~ key
-    OEMOpenBracket = 0xDB,    // For the US standard keyboard, the [{ key
-    OEMBackslash = 0xDC,      // For the US standard keyboard, the \| key
-    OEMCloseBracket = 0xDD,   // For the US standard keyboard, the ]} key
-    OEMQuotes = 0xDE,         // For the US standard keyboard, the '" key
-    OEMMisc = 0xDF,           // Used for miscellaneous characters; it can vary by keyboard.
-    OEMPLUS102 = 0xE2,        // The <> keys on the US standard keyboard, or the \| key on the non-US 102-key keyboard
-    IMEProcess = 0xE5,        // IME PROCESS key
-    Packet = 0xE7,            // Used to pass Unicode characters as if they were keystrokes
-    PA1 = 0xFD,               // PA1 key
-    OEMClear = 0xFE,          // Clear key
+    OEMSemicolon = 0xBA,
+    OEMPlus = 0xBB,
+    OEMComma = 0xBC,
+    OEMMinus = 0xBD,
+    OEMPeriod = 0xBE,
+    OEMQuestion = 0xBF,
+    OEMTilde = 0xC0,
+    OEMOpenBracket = 0xDB,
+    OEMBackslash = 0xDC,
+    OEMCloseBracket = 0xDD,
+    OEMQuotes = 0xDE,
+    OEMMisc = 0xDF,
+    OEMPLUS102 = 0xE2,
+    IMEProcess = 0xE5,
+    Packet = 0xE7,
+    PA1 = 0xFD,
+    OEMClear = 0xFE,
 }

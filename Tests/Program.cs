@@ -1,4 +1,5 @@
-﻿using ZeroInputs.Windows;
+﻿using ZeroInputs.Core;
+using ZeroInputs.Windows;
 using ZeroInputs.Windows.Enums;
 
 namespace Tests;
@@ -12,11 +13,6 @@ internal class Program
         while (true)
         {
             api.Update();
-
-            if (api.IsKeyReleased(KeyCode.A))
-            {
-                api.KeyPress('\n');
-            }
-        } 
+        }
     }
 }

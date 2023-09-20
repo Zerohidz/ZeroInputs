@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace ZeroInputs.Core.DataContainers;
+namespace ZeroInputs;
 
 public struct Point
 {
