@@ -8,9 +8,8 @@ namespace ZeroInputs.Windows;
 
 // TODO: IInputDevice tamamla
 
-public partial class WindowsInputDevice 
+public partial class WindowsInputDevice
 {
-    private const string User32 = "user32.dll";
     private const string IgnoredChars = "\r";
     private const int VkCount = 256;
     private readonly byte[] _previousKeyStates = new byte[VkCount];
@@ -182,39 +181,28 @@ public partial class WindowsInputDevice
     private readonly Dictionary<ushort, Key> _keysOfKeyCodes;
 
     #region LibraryImports
-    [DllImport(User32)]
+    [DllImport("user32.dll")]
     private static extern bool GetKeyboardState(byte[] keys);
 
-    [DllImport(User32, CharSet = CharSet.Auto, ExactSpelling = true, CallingConvention = CallingConvention.Winapi)]
+    [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true, CallingConvention = CallingConvention.Winapi)]
     public static extern short GetKeyState(int keyCode);
 
-    [DllImport(User32)]
+    [DllImport("user32.dll")]
     public static extern short VkKeyScanEx(char ch, IntPtr dwhkl);
 
-    [DllImport(User32)]
+    [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
 
-    [DllImport(User32)]
+    [DllImport("user32.dll")]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-    [DllImport(User32)]
+    [DllImport("user32.dll")]
     public static extern uint GetKeyboardLayout(uint idThread);
 
-    [DllImport(User32)]
+    [DllImport("user32.dll")]
     private static extern uint SendInput(uint nInputs, KeyboardInput[] pInputs, int cbSize);
 
-    [DllImport(User32)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetCursorPos(int x, int y);
-
-    [DllImport(User32)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetCursorPos(out System.Drawing.Point lpMousePoint);
-
-    [DllImport(User32)]
-    private static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
-
-    [DllImport(User32)]
+    [DllImport("user32.dll")]
     private static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
     #endregion
 
@@ -233,73 +221,6 @@ public partial class WindowsInputDevice
 
         _currentKeyStates.CopyTo(_previousKeyStates, 0);
         GetKeyboardState(_currentKeyStates);
-    }
-    #endregion
-
-    #region MouseInformation
-    public Point GetMousePosition()
-    {
-        if (!GetCursorPos(out var currentMousePoint))
-            throw new Exception("Couldn't get mouse point!");
-
-        return currentMousePoint;
-    }
-    #endregion
-
-    #region MouseSimulation
-    public void SetMousePosition(int x, int y)
-        => SetCursorPos(x, y);
-
-    public void SetMousePosition(Point point)
-        => SetCursorPos(point.X, point.Y);
-
-    public void MouseUp(MouseButton button)
-    {
-        MouseEventFlags flag = button switch
-        {
-            MouseButton.Left => MouseEventFlags.LeftUp,
-            MouseButton.Middle => MouseEventFlags.MiddleUp,
-            MouseButton.Right => MouseEventFlags.RightUp,
-            _ => throw new InvalidMouseButtonException(),
-        };
-        DoMouseEvent(flag);
-    }
-
-    public void MouseDown(MouseButton button)
-    {
-        MouseEventFlags flag = button switch
-        {
-            MouseButton.Left => MouseEventFlags.LeftDown,
-            MouseButton.Middle => MouseEventFlags.MiddleDown,
-            MouseButton.Right => MouseEventFlags.RightDown,
-            _ => throw new InvalidMouseButtonException(),
-        };
-        DoMouseEvent(flag);
-    }
-
-    public void Click(MouseButton button)
-    {
-        MouseDown(button);
-        MouseUp(button);
-    }
-
-    public void Click(MouseButton button, Point position)
-    {
-        SetMousePosition(position);
-        Click(button);
-    }
-
-    private void DoMouseEvent(MouseEventFlags flag)
-    {
-        Point position = GetMousePosition();
-
-        mouse_event((int)flag, position.X, position.Y, 0, 0);
-    }
-
-    private void DoMouseEvent(MouseEventFlags flag, Point position)
-    {
-        SetMousePosition(position);
-        mouse_event((int)flag, position.X, position.Y, 0, 0);
     }
     #endregion
 
@@ -418,23 +339,21 @@ public partial class WindowsInputDevice
         SendInputs(inputs);
     }
 
-    public void KeyPress(char key)
+    public void KeyDown(char key)
     {
-        if (IsIgnoredChar(key)) 
+        if (IsIgnoredChar(key))
             return;
 
-        var inputs = new KeyboardInput[2];
+        var inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key);
-        ConfigureInput(ref inputs[1], key, keyUp: true);
 
         SendInputs(inputs);
     }
 
-    public void KeyPress(Key key)
+    public void KeyDown(Key key)
     {
-        var inputs = new KeyboardInput[2];
+        var inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key);
-        ConfigureInput(ref inputs[1], key, keyUp: true);
 
         SendInputs(inputs);
     }
@@ -458,21 +377,23 @@ public partial class WindowsInputDevice
         SendInputs(inputs);
     }
 
-    public void KeyDown(char key)
+    public void KeyPress(char key)
     {
-        if (IsIgnoredChar(key))
+        if (IsIgnoredChar(key)) 
             return;
 
-        var inputs = new KeyboardInput[1];
+        var inputs = new KeyboardInput[2];
         ConfigureInput(ref inputs[0], key);
+        ConfigureInput(ref inputs[1], key, keyUp: true);
 
         SendInputs(inputs);
     }
 
-    public void KeyDown(Key key)
+    public void KeyPress(Key key)
     {
-        var inputs = new KeyboardInput[1];
+        var inputs = new KeyboardInput[2];
         ConfigureInput(ref inputs[0], key);
+        ConfigureInput(ref inputs[1], key, keyUp: true);
 
         SendInputs(inputs);
     }
@@ -531,7 +452,7 @@ public partial class WindowsInputDevice
         throw new NotImplementedException();
     }
 
-    private bool IsIgnoredChar(char key)
+    private static bool IsIgnoredChar(char key)
         => IgnoredChars.Contains(key);
 
     private static void SendInputs(KeyboardInput[] inputs)
@@ -543,7 +464,7 @@ public partial class WindowsInputDevice
     private void ConfigureInput(ref KeyboardInput input, Key key, bool keyUp = false)
         => ConfigureForVirtualKey(ref input, _keyCodes[key], keyUp);
 
-    private void ConfigureInput(ref KeyboardInput input, char key, bool keyUp = false)
+    private static void ConfigureInput(ref KeyboardInput input, char key, bool keyUp = false)
     {
         if (key is '\n') key = (char)Key.Enter;
 
@@ -555,7 +476,7 @@ public partial class WindowsInputDevice
             ConfigureForUnicode(ref input, key, keyUp);
     }
 
-    private void ConfigureForUnicode(ref KeyboardInput input, char key, bool keyUp)
+    private static void ConfigureForUnicode(ref KeyboardInput input, char key, bool keyUp)
     {
         input = new KeyboardInput()
         {
@@ -574,7 +495,7 @@ public partial class WindowsInputDevice
             input.Flags |= (uint)KeyEventFlags.ExtendedKey;
     }
 
-    private void ConfigureForVirtualKey(ref KeyboardInput input, ushort key, bool keyUp)
+    private static void ConfigureForVirtualKey(ref KeyboardInput input, ushort key, bool keyUp)
     {
         input = new KeyboardInput()
         {

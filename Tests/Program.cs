@@ -8,25 +8,16 @@ internal class Program
     private static void Main(string[] args)
     {
         WindowsInputDevice device = new();
+        WindowsMouse mouse = new();
 
         while (true)
         {
             device.Update();
 
-            if (device.IsKeyDown(Key.LeftMouseButton))
-                Console.WriteLine("Left Mouse " + device.GetMousePosition());
-
-            if (device.IsKeyPressed(Key.RightMouseButton))
-                Console.WriteLine("Right Mouse Pressed");
-
-            if (device.IsKeyReleased(Key.MiddleMouseButton))
-                Console.WriteLine("Middle Mouse Released");
-
-            if (device.IsKeyPressed('Ş'))
+            if (device.IsKeyReleased(Key.LeftMouseButton))
             {
-                device.KeyDown(Key.Control);
-                device.KeyPress('S');
-                device.KeyUp(Key.Control);
+                Console.WriteLine("asdf");
+                mouse.MouseDown(MouseButton.Left, (1200, 600));
             }
         }
     }
