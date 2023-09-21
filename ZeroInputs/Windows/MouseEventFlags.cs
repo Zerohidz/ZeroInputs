@@ -1,7 +1,7 @@
-﻿namespace ZeroInputs.Windows.Enums;
+﻿namespace ZeroInputs.Windows;
 
 [Flags]
-public enum MouseEventFlags : uint
+internal enum MouseEventFlags : uint
 {
     LeftDown = 0x00000002,
     LeftUp = 0x00000004,

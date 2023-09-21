@@ -6,8 +6,4 @@
 	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Folder Include="Core\Enums\" />
-  </ItemGroup>
-
 </Project>

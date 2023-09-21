@@ -1,7 +1,7 @@
-﻿namespace ZeroInputs.Windows.Enums;
+﻿namespace ZeroInputs.Windows;
 
 [Flags]
-enum KeyEventFlags : uint
+internal enum KeyEventFlags : uint
 {
     None = 0x0000,
     ExtendedKey = 0x0001,

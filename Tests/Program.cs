@@ -1,6 +1,5 @@
-﻿using ZeroInputs.Core;
+﻿using ZeroInputs;
 using ZeroInputs.Windows;
-using ZeroInputs.Windows.Enums;
 
 namespace Tests;
 
@@ -8,11 +7,27 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        InputApi api = new();
+        WindowsInputDevice device = new();
 
         while (true)
         {
-            api.Update();
+            device.Update();
+
+            if (device.IsKeyDown(Key.LeftMouseButton))
+                Console.WriteLine("Left Mouse " + device.GetMousePosition());
+
+            if (device.IsKeyPressed(Key.RightMouseButton))
+                Console.WriteLine("Right Mouse Pressed");
+
+            if (device.IsKeyReleased(Key.MiddleMouseButton))
+                Console.WriteLine("Middle Mouse Released");
+
+            if (device.IsKeyPressed('ş'))
+            {
+                device.KeyDown(Key.Control);
+                device.KeyPress('S');
+                device.KeyUp(Key.Control);
+            }
         }
     }
 }
