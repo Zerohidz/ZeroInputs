@@ -1,17 +1,14 @@
 ﻿using System.Runtime.InteropServices;
-using System.Text;
+using ZeroInputs.Windows.Exceptions;
 
 namespace ZeroInputs.Windows;
 
-// TODO: onMouseWheelScroll
-// https://github.com/michaelnoonan/inputsimulator/tree/master
-// TODO: Büyük harfleri
-
-internal partial class WindowsKeyboard : IKeyboard
+internal sealed class WindowsKeyboard : IKeyboard
 {
+    private const string User32 = "user32.dll";
     private const string IgnoredChars = "\r";
-    private readonly IKeyStateReader _stateReader;
-    private readonly Dictionary<Key, ushort> _keyCodes = new()
+
+    private static readonly Dictionary<Key, ushort> _keyCodes = new()
     {
         {Key.LeftMouseButton, 0x01},
         {Key.RightMouseButton, 0x02},
@@ -175,38 +172,34 @@ internal partial class WindowsKeyboard : IKeyboard
         {Key.PA1, 0xFD},
         {Key.OEMClear, 0xFE},
     };
-    private readonly Dictionary<ushort, Key> _keysOfKeyCodes;
+    private readonly static Dictionary<ushort, Key> _keysOfKeyCodes = _keyCodes.ToDictionary(kv => kv.Value, kv => kv.Key);
+
+    private readonly WindowsInputStateProvider _stateProvider;
 
     #region LibraryImports
-    [DllImport("user32.dll")]
+    [DllImport(User32)]
     public static extern short VkKeyScanEx(char ch, IntPtr dwhkl);
 
-    [DllImport("user32.dll")]
+    [DllImport(User32)]
     public static extern IntPtr GetForegroundWindow();
 
-    [DllImport("user32.dll")]
+    [DllImport(User32)]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-    [DllImport("user32.dll")]
+    [DllImport(User32)]
     public static extern uint GetKeyboardLayout(uint idThread);
 
-    [DllImport("user32.dll")]
+    [DllImport(User32)]
     private static extern uint SendInput(uint nInputs, KeyboardInput[] pInputs, int cbSize);
 
-    [DllImport("user32.dll")]
+    [DllImport(User32)]
     private static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
     #endregion
 
     #region EssentialFunctions
-    public WindowsKeyboard(IKeyStateReader keySatesReader)
+    public WindowsKeyboard(WindowsInputStateProvider stateProvider)
     {
-        _stateReader = keySatesReader;
-        _keysOfKeyCodes = _keyCodes.ToDictionary(kv => kv.Value, kv => kv.Key);
-    }
-
-    public void Update()
-    {
-        _stateReader.Read();
+        _stateProvider = stateProvider;
     }
     #endregion
 
@@ -254,29 +247,24 @@ internal partial class WindowsKeyboard : IKeyboard
         => IsAnyKeyFiltered(IsKeyReleased, out keys);
 
     public bool IsCapsLockOn()
-        => (_stateReader.CurrentKeyStates[_keyCodes[Key.CapsLock]] & 0x0001) != 0;
+        => (_stateProvider.CurrentStates[_keyCodes[Key.CapsLock]] & 0x0001) != 0;
 
     public bool IsNumLockOn()
-        => (_stateReader.CurrentKeyStates[_keyCodes[Key.NumLock]] & 0x0001) != 0;
+        => (_stateProvider.CurrentStates[_keyCodes[Key.NumLock]] & 0x0001) != 0;
 
     public bool IsScrollLockOn()
-        => (_stateReader.CurrentKeyStates[_keyCodes[Key.ScrollLock]] & 0x0001) != 0;
+        => (_stateProvider.CurrentStates[_keyCodes[Key.ScrollLock]] & 0x0001) != 0;
 
     private bool IsKeyDown(ushort keyCode)
-       => (_stateReader.CurrentKeyStates[keyCode] & 0x80) != 0;
+       => (_stateProvider.CurrentStates[keyCode] & 0x80) != 0;
     private bool IsKeyPressed(ushort keyCode)
-        => (_stateReader.CurrentKeyStates[keyCode] & 0x80) != 0 && (_stateReader.PreviousKeyStates[keyCode] & 0x80) == 0;
+        => (_stateProvider.CurrentStates[keyCode] & 0x80) != 0 && (_stateProvider.PreviousStates[keyCode] & 0x80) == 0;
 
     private bool IsKeyReleased(ushort keyCode)
-        => (_stateReader.CurrentKeyStates[keyCode] & 0x80) == 0 && (_stateReader.PreviousKeyStates[keyCode] & 0x80) != 0;
+        => (_stateProvider.CurrentStates[keyCode] & 0x80) == 0 && (_stateProvider.PreviousStates[keyCode] & 0x80) != 0;
 
     private bool IsAnyKeyFiltered(Func<ushort, bool> filter)
-    {
-        for (ushort key = 0; key < 256; key++)
-            if (filter.Invoke(key))
-                return true;
-        return false;
-    }
+        => _keyCodes.Values.Any(filter);
 
     private bool IsAnyKeyFiltered(Func<ushort, bool> filter, out Key[] keys)
     {
@@ -284,7 +272,7 @@ internal partial class WindowsKeyboard : IKeyboard
         List<Key> keysList = new();
         for (ushort keyCode = 0; keyCode < 256; keyCode++)
         {
-            if (filter.Invoke(keyCode) && _keysOfKeyCodes.TryGetValue(keyCode, out Key key)) // TODO: Eğer Key karşılığı yoksa IsAnyKeyFiltered ignoreluyor o key'i
+            if (filter.Invoke(keyCode) && _keysOfKeyCodes.TryGetValue(keyCode, out Key key))
             {
                 keysList.Add(key);
                 result = true;
@@ -296,9 +284,8 @@ internal partial class WindowsKeyboard : IKeyboard
 
     private uint GetKeyboardLocaleId()
     {
-        uint dwProcessId;
         IntPtr hWindowHandle = GetForegroundWindow();
-        uint dwThreadId = GetWindowThreadProcessId(hWindowHandle, out dwProcessId);
+        uint dwThreadId = GetWindowThreadProcessId(hWindowHandle, out _);
         return GetKeyboardLayout(dwThreadId);
     }
 
@@ -325,7 +312,7 @@ internal partial class WindowsKeyboard : IKeyboard
         SendInputs(inputs);
     }
 
-    public void KeyDown(char key)
+    public void PressKey(char key)
     {
         if (IsIgnoredChar(key))
             return;
@@ -336,7 +323,7 @@ internal partial class WindowsKeyboard : IKeyboard
         SendInputs(inputs);
     }
 
-    public void KeyDown(Key key)
+    public void PressKey(Key key)
     {
         var inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key);
@@ -344,7 +331,7 @@ internal partial class WindowsKeyboard : IKeyboard
         SendInputs(inputs);
     }
 
-    public void KeyUp(char key)
+    public void ReleaseKey(char key)
     {
         if (IsIgnoredChar(key))
             return;
@@ -355,7 +342,7 @@ internal partial class WindowsKeyboard : IKeyboard
         SendInputs(inputs);
     }
 
-    public void KeyUp(Key key)
+    public void ReleaseKey(Key key)
     {
         var inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key, keyUp: true);
@@ -363,7 +350,7 @@ internal partial class WindowsKeyboard : IKeyboard
         SendInputs(inputs);
     }
 
-    public void KeyPress(char key)
+    public void SendKey(char key)
     {
         if (IsIgnoredChar(key))
             return;
@@ -375,67 +362,13 @@ internal partial class WindowsKeyboard : IKeyboard
         SendInputs(inputs);
     }
 
-    public void KeyPress(Key key)
+    public void SendKey(Key key)
     {
         var inputs = new KeyboardInput[2];
         ConfigureInput(ref inputs[0], key);
         ConfigureInput(ref inputs[1], key, keyUp: true);
 
         SendInputs(inputs);
-    }
-
-    public void Copy()
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Copy(string text)
-    {
-        // TODO: çalışmıyor
-        const uint CF_UNICODETEXT = 0xD;
-
-        string nullTerminatedText = text + "\0";
-        byte[] textBytes = Encoding.Unicode.GetBytes(nullTerminatedText);
-        IntPtr hglobal = Marshal.AllocHGlobal(textBytes.Length);
-        Marshal.Copy(textBytes, 0, hglobal, textBytes.Length);
-        SetClipboardData(CF_UNICODETEXT, hglobal);
-        Marshal.FreeHGlobal(hglobal);
-
-        throw new NotImplementedException();
-
-        //[DllImport(User32)]
-        //private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        //[DllImport(User32, CharSet = CharSet.Auto)]
-        //static public extern IntPtr GetForegroundWindow();
-
-        //[DllImport(User32)]
-        //static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo);
-
-
-        //.....
-
-        //private void SendCtrlC(IntPtr hWnd)
-        //    {
-        //        uint KEYEVENTF_KEYUP = 2;
-        //        byte VK_CONTROL = 0x11;
-        //        SetForegroundWindow(hWnd);
-        //        keybd_event(VK_CONTROL, 0, 0, 0);
-        //        keybd_event(0x43, 0, 0, 0); //Send the C key (43 is "C")
-        //        keybd_event(0x43, 0, KEYEVENTF_KEYUP, 0);
-        //        keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);// 'Left Control Up
-
-        //    }
-    }
-
-    public void Paste()
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Paste(string text)
-    {
-        throw new NotImplementedException();
     }
 
     private static bool IsIgnoredChar(char key)

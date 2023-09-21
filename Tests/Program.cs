@@ -1,4 +1,5 @@
-﻿using ZeroInputs;
+﻿using Microsoft.Extensions.DependencyInjection;
+using ZeroInputs;
 
 namespace Tests;
 
@@ -6,18 +7,24 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        IInputDevice device = DeviceProvider.GetInputDevice();
+        var services = new ServiceCollection()
+            .AddZeroInputs()
+            .BuildServiceProvider();
+
+        IInputService input = services.GetRequiredService<IInputService>();
+        IKeyboard keyboard = services.GetRequiredService<IKeyboard>();
+
         Console.WriteLine("Ready!");
 
         while (true)
         {
-            device.Update();
+            input.Update();
 
-            if (device.IsKeyReleased(Key.I))
+            if (keyboard.IsKeyReleased(Key.I))
             {
-                device.KeyDown(Key.Control);
-                device.KeyPress('s');
-                device.KeyUp(Key.Control);
+                keyboard.PressKey(Key.Control);
+                keyboard.SendKey(Key.S);
+                keyboard.ReleaseKey(Key.Control);
             }
         }
     }
