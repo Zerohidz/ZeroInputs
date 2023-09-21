@@ -1,5 +1,6 @@
 ﻿using ZeroInputs;
 using ZeroInputs.Windows;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Tests;
 
@@ -7,17 +8,25 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        WindowsInputDevice device = new();
-        WindowsMouse mouse = new();
+        IServiceCollection services = new ServiceCollection();
+        IServiceProvider provider = services
+            .AddTransient<KeyStateReader, KeyStateReader>()
+            .AddSingleton<IKeyboard, WindowsKeyboard>()
+            .AddSingleton<IMouse, WindowsMouse>()
+            .BuildServiceProvider();
+
+        IKeyboard keyboard = provider.GetRequiredService<IKeyboard>();
+        IMouse mouse = provider.GetRequiredService<IMouse>();
 
         while (true)
         {
-            device.Update();
+            keyboard.Update();
+            mouse.Update();
 
-            if (device.IsKeyReleased(Key.LeftMouseButton))
+            if (keyboard.IsKeyReleased(Key.I))
             {
-                Console.WriteLine("asdf");
-                mouse.MouseDown(MouseButton.Left, (1200, 600));
+                keyboard.Write("Test");
+                keyboard.KeyPress(Key.Enter);
             }
         }
     }

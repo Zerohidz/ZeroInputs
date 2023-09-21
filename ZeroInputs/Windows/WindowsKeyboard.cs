@@ -6,14 +6,12 @@ namespace ZeroInputs.Windows;
 // TODO: onMouseWheelScroll
 // https://github.com/michaelnoonan/inputsimulator/tree/master
 
-// TODO: IInputDevice tamamla
-
-public partial class WindowsInputDevice
+public partial class WindowsKeyboard : IKeyboard
 {
+    // TODO: '\n' ve '<' yazmadı
+
     private const string IgnoredChars = "\r";
-    private const int VkCount = 256;
-    private readonly byte[] _previousKeyStates = new byte[VkCount];
-    private readonly byte[] _currentKeyStates = new byte[VkCount];
+    private readonly KeyStateReader _stateReader;
     private readonly Dictionary<Key, ushort> _keyCodes = new()
     {
         {Key.LeftMouseButton, 0x01},
@@ -182,12 +180,6 @@ public partial class WindowsInputDevice
 
     #region LibraryImports
     [DllImport("user32.dll")]
-    private static extern bool GetKeyboardState(byte[] keys);
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true, CallingConvention = CallingConvention.Winapi)]
-    public static extern short GetKeyState(int keyCode);
-
-    [DllImport("user32.dll")]
     public static extern short VkKeyScanEx(char ch, IntPtr dwhkl);
 
     [DllImport("user32.dll")]
@@ -207,20 +199,15 @@ public partial class WindowsInputDevice
     #endregion
 
     #region EssentialFunctions
-    public WindowsInputDevice()
+    public WindowsKeyboard(KeyStateReader keySatesReader)
     {
+        _stateReader = keySatesReader;
         _keysOfKeyCodes = _keyCodes.ToDictionary(kv => kv.Value, kv => kv.Key);
     }
 
-    /// <summary>
-    /// Updates the key states information, use this method inside a loop
-    /// </summary>
     public void Update()
     {
-        GetKeyState(0); // This is needed to activate GetKeyboardState()
-
-        _currentKeyStates.CopyTo(_previousKeyStates, 0);
-        GetKeyboardState(_currentKeyStates);
+        _stateReader.Read();
     }
     #endregion
 
@@ -268,25 +255,25 @@ public partial class WindowsInputDevice
         => IsAnyKeyFiltered(IsKeyReleased, out keys);
 
     public bool IsCapsLockOn()
-        => (GetKeyState((int)Key.CapsLock) & 0x0001) != 0;
+        => (_stateReader.CurrentKeyStates[_keyCodes[Key.CapsLock]] & 0x0001) != 0;
 
     public bool IsNumLockOn()
-        => (GetKeyState((int)Key.NumLock) & 0x0001) != 0;
+        => (_stateReader.CurrentKeyStates[_keyCodes[Key.NumLock]] & 0x0001) != 0;
 
     public bool IsScrollLockOn()
-        => (GetKeyState((int)Key.ScrollLock) & 0x0001) != 0;
+        => (_stateReader.CurrentKeyStates[_keyCodes[Key.ScrollLock]] & 0x0001) != 0;
 
     private bool IsKeyDown(ushort keyCode)
-       => (_currentKeyStates[keyCode] & 0x80) != 0;
+       => (_stateReader.CurrentKeyStates[keyCode] & 0x80) != 0;
     private bool IsKeyPressed(ushort keyCode)
-        => (_currentKeyStates[keyCode] & 0x80) != 0 && (_previousKeyStates[keyCode] & 0x80) == 0;
+        => (_stateReader.CurrentKeyStates[keyCode] & 0x80) != 0 && (_stateReader.PreviousKeyStates[keyCode] & 0x80) == 0;
 
     private bool IsKeyReleased(ushort keyCode)
-        => (_currentKeyStates[keyCode] & 0x80) == 0 && (_previousKeyStates[keyCode] & 0x80) != 0;
+        => (_stateReader.CurrentKeyStates[keyCode] & 0x80) == 0 && (_stateReader.PreviousKeyStates[keyCode] & 0x80) != 0;
 
     private bool IsAnyKeyFiltered(Func<ushort, bool> filter)
     {
-        for (ushort key = 0; key < VkCount; key++)
+        for (ushort key = 0; key < 256; key++)
             if (filter.Invoke(key))
                 return true;
         return false;
@@ -296,7 +283,7 @@ public partial class WindowsInputDevice
     {
         bool result = false;
         List<Key> keysList = new();
-        for (ushort keyCode = 0; keyCode < VkCount; keyCode++)
+        for (ushort keyCode = 0; keyCode < 256; keyCode++)
         {
             if (filter.Invoke(keyCode) && _keysOfKeyCodes.TryGetValue(keyCode, out Key key)) // TODO: Eğer Key karşılığı yoksa IsAnyKeyFiltered ignoreluyor o key'i
             {
@@ -322,7 +309,7 @@ public partial class WindowsInputDevice
 
         uint keyboardLocaleId = GetKeyboardLocaleId();
         short vKeyCode = VkKeyScanEx(key, (nint)keyboardLocaleId);
-        if ((vKeyCode < VkCount && -1 < vKeyCode) == false)
+        if ((vKeyCode < 256 && -1 < vKeyCode) == false)
             throw new KeyCodeOfCharNotFoundException();
 
         return (ushort)vKeyCode;

@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.InteropServices;
 
 namespace ZeroInputs.Windows;
 public class WindowsMouse : IMouse
 {
     private const int WheelDelta = 120;
+    private readonly KeyStateReader _stateReader;
 
     #region LibraryImports
     [DllImport("user32.dll")]
@@ -23,10 +19,17 @@ public class WindowsMouse : IMouse
     private static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
     #endregion
 
+    #region EssentialMethods
+    public WindowsMouse(KeyStateReader stateReader)
+    {
+        _stateReader = stateReader;
+    }
+
     public void Update()
     {
-
+        _stateReader.Read();
     }
+    #endregion
 
     #region MouseInformation
     public Point GetMousePosition()
