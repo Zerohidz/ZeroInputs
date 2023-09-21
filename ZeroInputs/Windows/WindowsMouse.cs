@@ -13,7 +13,7 @@ internal class WindowsMouse : IMouse
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetCursorPos(out System.Drawing.Point lpMousePoint);
+    private static extern bool GetCursorPos(out Point lpMousePoint);
 
     [DllImport("user32.dll")]
     private static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);

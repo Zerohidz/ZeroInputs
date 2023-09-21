@@ -15,6 +15,7 @@ internal class Program
 
             if (device.IsKeyReleased(Key.I))
             {
+                Console.WriteLine(device.GetMousePosition());
                 device.Write("Test");
                 device.KeyPress(Key.Enter);
             }
