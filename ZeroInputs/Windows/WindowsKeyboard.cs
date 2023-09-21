@@ -257,6 +257,7 @@ internal sealed class WindowsKeyboard : IKeyboard
 
     private bool IsKeyDown(ushort keyCode)
        => (_stateProvider.CurrentStates[keyCode] & 0x80) != 0;
+
     private bool IsKeyPressed(ushort keyCode)
         => (_stateProvider.CurrentStates[keyCode] & 0x80) != 0 && (_stateProvider.PreviousStates[keyCode] & 0x80) == 0;
 

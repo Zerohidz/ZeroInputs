@@ -22,9 +22,7 @@ internal class Program
 
             if (keyboard.IsKeyReleased(Key.I))
             {
-                keyboard.PressKey(Key.Control);
-                keyboard.SendKey(Key.S);
-                keyboard.ReleaseKey(Key.Control);
+                input.Mouse.Scroll(5);
             }
         }
     }

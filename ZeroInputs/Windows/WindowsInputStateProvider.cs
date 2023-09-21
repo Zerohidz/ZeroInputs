@@ -11,6 +11,7 @@ internal sealed class WindowsInputStateProvider : IInputStateProvider
     public byte[] CurrentStates { get; } = new byte[VirtualKeyCount];
 
     // @alihakankurt TODO: Extract library imports to a seperate class and make it static to avoid multiple imports.
+    // @zerohidz TODO: Create a method like IsDown(ushort keyCode) in WindowsInputStateProvider to prevent code repetitions.
     #region LibraryImports
     [DllImport(User32)]
     private static extern bool GetKeyboardState(byte[] keys);

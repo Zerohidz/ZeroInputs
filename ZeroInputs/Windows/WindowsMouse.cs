@@ -9,6 +9,24 @@ internal sealed class WindowsMouse : IMouse
     private const string User32 = "user32.dll";
 
     private readonly WindowsInputStateProvider _stateProvider;
+    private static readonly Dictionary<MouseButton, ushort> _buttonKeyCodes = new()
+    {
+        {MouseButton.Left, 0x01},
+        {MouseButton.Middle, 0x04},
+        {MouseButton.Right, 0x02},
+    };
+    private static readonly Dictionary<MouseButton, MouseEventFlags> _buttonDownFlags = new()
+    {
+        {MouseButton.Left, MouseEventFlags.LeftDown},
+        {MouseButton.Middle, MouseEventFlags.MiddleDown},
+        {MouseButton.Right, MouseEventFlags.RightDown},
+    };
+    private static readonly Dictionary<MouseButton, MouseEventFlags> _buttonUpFlags = new()
+    {
+        {MouseButton.Left, MouseEventFlags.LeftUp},
+        {MouseButton.Middle, MouseEventFlags.MiddleUp},
+        {MouseButton.Right, MouseEventFlags.RightUp},
+    };
 
     #region LibraryImports
     [DllImport(User32)]
@@ -38,25 +56,19 @@ internal sealed class WindowsMouse : IMouse
     #region MouseInformation
     public Point Position => GetCursorPos(out var currentMousePoint)
         ? currentMousePoint
-        : throw new Exception("Couldn't get mouse point!");
-
+        : throw new CouldNotGetMousePositionException();
     public bool IsButtonDown(MouseButton button)
-    {
-        throw new NotImplementedException();
-    }
+           => (_stateProvider.CurrentStates[_buttonKeyCodes[button]] & 0x80) != 0;
 
     public bool IsButtonUp(MouseButton button)
         => !IsButtonDown(button);
 
     public bool IsButtonPressed(MouseButton button)
-    {
-        throw new NotImplementedException();
-    }
+        => (_stateProvider.CurrentStates[_buttonKeyCodes[button]] & 0x80) != 0 && (_stateProvider.CurrentStates[_buttonKeyCodes[button]] & 0x80) == 0;
 
     public bool IsButtonReleased(MouseButton button)
-    {
-        throw new NotImplementedException();
-    }
+        => (_stateProvider.CurrentStates[_buttonKeyCodes[button]] & 0x80) == 0 && (_stateProvider.CurrentStates[_buttonKeyCodes[button]] & 0x80) != 0;
+
     #endregion
 
     #region MouseSimulation
@@ -67,40 +79,16 @@ internal sealed class WindowsMouse : IMouse
         => SetCursorPos(point.X, point.Y);
 
     public void PressButton(MouseButton button)
-        => DoMouseEvent(button switch
-        {
-            MouseButton.Left => MouseEventFlags.LeftDown,
-            MouseButton.Middle => MouseEventFlags.MiddleDown,
-            MouseButton.Right => MouseEventFlags.RightDown,
-            _ => throw new InvalidMouseButtonException(),
-        });
+        => DoMouseEvent(_buttonDownFlags[button]);
 
     public void PressButton(MouseButton button, Point position)
-        => DoMouseEvent(button switch
-        {
-            MouseButton.Left => MouseEventFlags.LeftDown,
-            MouseButton.Middle => MouseEventFlags.MiddleDown,
-            MouseButton.Right => MouseEventFlags.RightDown,
-            _ => throw new InvalidMouseButtonException(),
-        }, position);
+        => DoMouseEvent(_buttonDownFlags[button], position);
 
     public void ReleaseButton(MouseButton button)
-        => DoMouseEvent(button switch
-        {
-            MouseButton.Left => MouseEventFlags.LeftUp,
-            MouseButton.Middle => MouseEventFlags.MiddleUp,
-            MouseButton.Right => MouseEventFlags.RightUp,
-            _ => throw new InvalidMouseButtonException(),
-        });
+        => DoMouseEvent(_buttonUpFlags[button]);
 
     public void ReleaseButton(MouseButton button, Point position)
-        => DoMouseEvent(button switch
-        {
-            MouseButton.Left => MouseEventFlags.LeftUp,
-            MouseButton.Middle => MouseEventFlags.MiddleUp,
-            MouseButton.Right => MouseEventFlags.RightUp,
-            _ => throw new InvalidMouseButtonException(),
-        }, position);
+        => DoMouseEvent(_buttonUpFlags[button], position);
 
     public void ClickButton(MouseButton button)
     {
@@ -116,8 +104,8 @@ internal sealed class WindowsMouse : IMouse
 
     public void Scroll(int distance)
     {
-        int scrollAmount = distance * WheelDelta;
-        throw new NotImplementedException();
+        int multipliedDistance = distance * WheelDelta;
+        mouse_event((int)MouseEventFlags.Wheel, 0, 0, multipliedDistance, 0);
     }
 
     private void DoMouseEvent(MouseEventFlags flag)
