@@ -6,7 +6,6 @@ namespace ZeroInputs.Windows;
 // TODO: onMouseWheelScroll
 // https://github.com/michaelnoonan/inputsimulator/tree/master
 
-// TODO: IsKeyDown()larda 'Ş' ve 'ş' ayrımı char.IsUpper()
 // TODO: Point record
 // TODO: IInputDevice tamamla
 
@@ -399,6 +398,8 @@ public partial class WindowsInputDevice : IInputDevice
 
     private ushort CharToVirtualKeyCode(char key)
     {
+        if (char.IsUpper(key)) key = char.ToLower(key);
+
         uint keyboardLocaleId = GetKeyboardLocaleId();
         short vKeyCode = VkKeyScanEx(key, (nint)keyboardLocaleId);
         if ((vKeyCode < VkCount && -1 < vKeyCode) == false)
@@ -420,7 +421,8 @@ public partial class WindowsInputDevice : IInputDevice
 
     public void KeyPress(char key)
     {
-        if (IsIgnoredChar(key)) return;
+        if (IsIgnoredChar(key)) 
+            return;
 
         var inputs = new KeyboardInput[2];
         ConfigureInput(ref inputs[0], key);
@@ -440,7 +442,8 @@ public partial class WindowsInputDevice : IInputDevice
 
     public void KeyUp(char key)
     {
-        if (IsIgnoredChar(key)) return;
+        if (IsIgnoredChar(key))
+            return;
 
         var inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key, keyUp: true);
@@ -458,7 +461,8 @@ public partial class WindowsInputDevice : IInputDevice
 
     public void KeyDown(char key)
     {
-        if (IsIgnoredChar(key)) return;
+        if (IsIgnoredChar(key))
+            return;
 
         var inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key);

@@ -22,7 +22,7 @@ internal class Program
             if (device.IsKeyReleased(Key.MiddleMouseButton))
                 Console.WriteLine("Middle Mouse Released");
 
-            if (device.IsKeyPressed('ş'))
+            if (device.IsKeyPressed('Ş'))
             {
                 device.KeyDown(Key.Control);
                 device.KeyPress('S');
