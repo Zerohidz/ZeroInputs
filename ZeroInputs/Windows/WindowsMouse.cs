@@ -4,7 +4,7 @@ namespace ZeroInputs.Windows;
 internal class WindowsMouse : IMouse
 {
     private const int WheelDelta = 120;
-    private readonly KeyStateReader _stateReader;
+    private readonly IKeyStateReader _stateReader;
 
     #region LibraryImports
     [DllImport("user32.dll")]
@@ -20,7 +20,7 @@ internal class WindowsMouse : IMouse
     #endregion
 
     #region EssentialMethods
-    public WindowsMouse(KeyStateReader stateReader)
+    public WindowsMouse(IKeyStateReader stateReader)
     {
         _stateReader = stateReader;
     }

@@ -11,7 +11,7 @@ public static class DeviceProvider
         if (OperatingSystem.IsWindows())
         {
             _serviceProvider = new ServiceCollection()
-                .AddTransient<KeyStateReader, KeyStateReader>()
+                .AddTransient<IKeyStateReader, WindowsKeyStateReader>()
                 .AddSingleton<IInputDevice, WindowsInputDevice>()
                 .AddSingleton<IKeyboard, WindowsKeyboard>()
                 .AddSingleton<IMouse, WindowsMouse>()

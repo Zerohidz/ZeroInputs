@@ -5,12 +5,12 @@ namespace ZeroInputs.Windows;
 
 // TODO: onMouseWheelScroll
 // https://github.com/michaelnoonan/inputsimulator/tree/master
-// TODO: '\n' ve '<' yazmadı
+// TODO: Büyük harfleri
 
 internal partial class WindowsKeyboard : IKeyboard
 {
     private const string IgnoredChars = "\r";
-    private readonly KeyStateReader _stateReader;
+    private readonly IKeyStateReader _stateReader;
     private readonly Dictionary<Key, ushort> _keyCodes = new()
     {
         {Key.LeftMouseButton, 0x01},
@@ -198,7 +198,7 @@ internal partial class WindowsKeyboard : IKeyboard
     #endregion
 
     #region EssentialFunctions
-    public WindowsKeyboard(KeyStateReader keySatesReader)
+    public WindowsKeyboard(IKeyStateReader keySatesReader)
     {
         _stateReader = keySatesReader;
         _keysOfKeyCodes = _keyCodes.ToDictionary(kv => kv.Value, kv => kv.Key);
@@ -450,16 +450,22 @@ internal partial class WindowsKeyboard : IKeyboard
     private void ConfigureInput(ref KeyboardInput input, Key key, bool keyUp = false)
         => ConfigureForVirtualKey(ref input, _keyCodes[key], keyUp);
 
-    private static void ConfigureInput(ref KeyboardInput input, char key, bool keyUp = false)
+    private void ConfigureInput(ref KeyboardInput input, char key, bool keyUp = false)
     {
-        if (key is '\n') key = (char)Key.Enter;
+        if (key is '\n') key = (char)_keyCodes[Key.Enter];
 
-        // This if statement is necessary to prevent wrong keycoding for uppercase letters or nonletter buttons
-        // If we don't send upper character inputs as virtual keycodes, the shortcuts bound to them don't work (ex: Ctrl+S)
-        if ((!char.IsLetter(key) || char.IsUpper(key)) && Enum.IsDefined((Key)key))
+        // If the given key is a lowercase character and its upper version is an ascii character
+        // we can send it as a virtual key. This provides us the ability to trigger shortcuts (ex: Ctrl+S)
+        bool isLowerAscii = char.IsLower(key) && char.IsAscii(char.ToUpper(key));
+        if ((!char.IsLetter(key) || isLowerAscii) && _keysOfKeyCodes.ContainsKey(key))
+        {
+            if (isLowerAscii) key = char.ToUpper(key);
             ConfigureForVirtualKey(ref input, key, keyUp);
+        }
         else
+        {
             ConfigureForUnicode(ref input, key, keyUp);
+        }
     }
 
     private static void ConfigureForUnicode(ref KeyboardInput input, char key, bool keyUp)

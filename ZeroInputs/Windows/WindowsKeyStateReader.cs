@@ -1,10 +1,10 @@
 ﻿using System.Runtime.InteropServices;
 
 namespace ZeroInputs.Windows;
-internal class KeyStateReader
+internal class WindowsKeyStateReader : IKeyStateReader
 {
-    public readonly byte[] PreviousKeyStates = new byte[256];
-    public readonly byte[] CurrentKeyStates = new byte[256];
+    public byte[] PreviousKeyStates { get;} = new byte[256];
+    public byte[] CurrentKeyStates { get; } = new byte[256];
 
     #region LibraryImports
     [DllImport("user32.dll")]

@@ -1,11 +1,12 @@
 ﻿namespace ZeroInputs.Windows;
 internal class WindowsInputDevice : IInputDevice
 {
-    private readonly KeyStateReader _stateReader;
+    private readonly IKeyStateReader _stateReader;
     private readonly IKeyboard _keyboard;
     private readonly IMouse _mouse;
 
-    public WindowsInputDevice(KeyStateReader stateReader)
+    #region EssentialMethods
+    public WindowsInputDevice(IKeyStateReader stateReader)
     {
         _stateReader = stateReader;
         _keyboard = new WindowsKeyboard(stateReader);
@@ -16,6 +17,7 @@ internal class WindowsInputDevice : IInputDevice
     {
         _stateReader.Read();
     }
+    #endregion
 
     #region Keyboard
     public bool IsKeyDown(char key) => _keyboard.IsKeyDown(key);
