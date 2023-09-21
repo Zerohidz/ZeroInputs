@@ -1,7 +1,7 @@
 ﻿namespace ZeroInputs;
+
 public interface IKeyboard
 {
-    public void Update();
     public bool IsKeyDown(char key);
     public bool IsKeyDown(Key key);
     public bool IsKeyUp(char key);
@@ -19,17 +19,11 @@ public interface IKeyboard
     public bool IsCapsLockOn();
     public bool IsNumLockOn();
     public bool IsScrollLockOn();
-    public void KeyDown(char key);
-    public void KeyDown(Key Key);
-    public void KeyUp(char key);
-    public void KeyUp(Key Key);
-    public void KeyPress(char key);
-    public void KeyPress(Key Key);
+    public void PressKey(char key);
+    public void PressKey(Key Key);
+    public void ReleaseKey(char key);
+    public void ReleaseKey(Key Key);
+    public void SendKey(char key);
+    public void SendKey(Key Key);
     public void Write(string text);
-
-    public void Copy();
-    public void Copy(string text);
-
-    public void Paste();
-    public void Paste(string text);
 }
