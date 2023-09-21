@@ -6,10 +6,9 @@ namespace ZeroInputs.Windows;
 // TODO: onMouseWheelScroll
 // https://github.com/michaelnoonan/inputsimulator/tree/master
 
-// TODO: Point record
 // TODO: IInputDevice tamamla
 
-public partial class WindowsInputDevice : IInputDevice
+public partial class WindowsInputDevice 
 {
     private const string User32 = "user32.dll";
     private const string IgnoredChars = "\r";
@@ -210,7 +209,7 @@ public partial class WindowsInputDevice : IInputDevice
 
     [DllImport(User32)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetCursorPos(out Point lpMousePoint);
+    private static extern bool GetCursorPos(out System.Drawing.Point lpMousePoint);
 
     [DllImport(User32)]
     private static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
