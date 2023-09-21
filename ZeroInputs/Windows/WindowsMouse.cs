@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 
 namespace ZeroInputs.Windows;
-public class WindowsMouse : IMouse
+internal class WindowsMouse : IMouse
 {
     private const int WheelDelta = 120;
     private readonly KeyStateReader _stateReader;

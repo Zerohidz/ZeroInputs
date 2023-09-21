@@ -5,11 +5,10 @@ namespace ZeroInputs.Windows;
 
 // TODO: onMouseWheelScroll
 // https://github.com/michaelnoonan/inputsimulator/tree/master
+// TODO: '\n' ve '<' yazmadı
 
-public partial class WindowsKeyboard : IKeyboard
+internal partial class WindowsKeyboard : IKeyboard
 {
-    // TODO: '\n' ve '<' yazmadı
-
     private const string IgnoredChars = "\r";
     private readonly KeyStateReader _stateReader;
     private readonly Dictionary<Key, ushort> _keyCodes = new()
@@ -366,7 +365,7 @@ public partial class WindowsKeyboard : IKeyboard
 
     public void KeyPress(char key)
     {
-        if (IsIgnoredChar(key)) 
+        if (IsIgnoredChar(key))
             return;
 
         var inputs = new KeyboardInput[2];

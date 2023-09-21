@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 
 namespace ZeroInputs.Windows;
-public class KeyStateReader
+internal class KeyStateReader
 {
     public readonly byte[] PreviousKeyStates = new byte[256];
     public readonly byte[] CurrentKeyStates = new byte[256];
