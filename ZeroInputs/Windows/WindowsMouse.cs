@@ -58,17 +58,16 @@ internal sealed class WindowsMouse : IMouse
         ? currentMousePoint
         : throw new CouldNotGetMousePositionException();
     public bool IsButtonDown(MouseButton button)
-           => (_stateProvider.CurrentStates[_buttonKeyCodes[button]] & 0x80) != 0;
+           => _stateProvider.IsKeyDown(_buttonKeyCodes[button]);
 
     public bool IsButtonUp(MouseButton button)
         => !IsButtonDown(button);
 
     public bool IsButtonPressed(MouseButton button)
-        => (_stateProvider.CurrentStates[_buttonKeyCodes[button]] & 0x80) != 0 && (_stateProvider.CurrentStates[_buttonKeyCodes[button]] & 0x80) == 0;
+           => _stateProvider.IsKeyPressed(_buttonKeyCodes[button]);
 
     public bool IsButtonReleased(MouseButton button)
-        => (_stateProvider.CurrentStates[_buttonKeyCodes[button]] & 0x80) == 0 && (_stateProvider.CurrentStates[_buttonKeyCodes[button]] & 0x80) != 0;
-
+           => _stateProvider.IsKeyReleased(_buttonKeyCodes[button]);
     #endregion
 
     #region MouseSimulation

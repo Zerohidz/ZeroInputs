@@ -205,10 +205,10 @@ internal sealed class WindowsKeyboard : IKeyboard
 
     #region KeyInformation
     public bool IsKeyDown(char key)
-        => IsKeyDown(CharToVirtualKeyCode(key));
+        => _stateProvider.IsKeyDown(CharToVirtualKeyCode(key));
 
     public bool IsKeyDown(Key key)
-        => IsKeyDown(_keyCodes[key]);
+        => _stateProvider.IsKeyDown(_keyCodes[key]);
 
     public bool IsKeyUp(char key)
         => !IsKeyDown(key);
@@ -217,52 +217,43 @@ internal sealed class WindowsKeyboard : IKeyboard
         => !IsKeyDown(key);
 
     public bool IsKeyPressed(char key)
-        => IsKeyPressed(CharToVirtualKeyCode(key));
+        => _stateProvider.IsKeyPressed(CharToVirtualKeyCode(key));
 
     public bool IsKeyPressed(Key key)
-        => IsKeyPressed(_keyCodes[key]);
+        => _stateProvider.IsKeyPressed(_keyCodes[key]);
 
     public bool IsKeyReleased(char key)
-        => IsKeyReleased(CharToVirtualKeyCode(key));
+        => _stateProvider.IsKeyReleased(CharToVirtualKeyCode(key));
 
     public bool IsKeyReleased(Key key)
-        => IsKeyReleased(_keyCodes[key]);
+        => _stateProvider.IsKeyReleased(_keyCodes[key]);
 
     public bool IsAnyKeyDown()
-        => IsAnyKeyFiltered(IsKeyDown);
+        => IsAnyKeyFiltered(_stateProvider.IsKeyDown);
 
     public bool IsAnyKeyDown(out Key[] keys)
-        => IsAnyKeyFiltered(IsKeyDown, out keys);
+        => IsAnyKeyFiltered(_stateProvider.IsKeyDown, out keys);
 
     public bool IsAnyKeyPressed()
-        => IsAnyKeyFiltered(IsKeyPressed);
+        => IsAnyKeyFiltered(_stateProvider.IsKeyPressed);
 
     public bool IsAnyKeyPressed(out Key[] keys)
-        => IsAnyKeyFiltered(IsKeyPressed, out keys);
+        => IsAnyKeyFiltered(_stateProvider.IsKeyPressed, out keys);
 
     public bool IsAnyKeyReleased()
-        => IsAnyKeyFiltered(IsKeyReleased);
+        => IsAnyKeyFiltered(_stateProvider.IsKeyReleased);
 
     public bool IsAnyKeyReleased(out Key[] keys)
-        => IsAnyKeyFiltered(IsKeyReleased, out keys);
+        => IsAnyKeyFiltered(_stateProvider.IsKeyReleased, out keys);
 
     public bool IsCapsLockOn()
-        => (_stateProvider.CurrentStates[_keyCodes[Key.CapsLock]] & 0x0001) != 0;
-
+        => _stateProvider.IsTogglableKeyOn(_keyCodes[Key.CapsLock]);
+        
     public bool IsNumLockOn()
-        => (_stateProvider.CurrentStates[_keyCodes[Key.NumLock]] & 0x0001) != 0;
+        => _stateProvider.IsTogglableKeyOn(_keyCodes[Key.NumLock]);
 
     public bool IsScrollLockOn()
-        => (_stateProvider.CurrentStates[_keyCodes[Key.ScrollLock]] & 0x0001) != 0;
-
-    private bool IsKeyDown(ushort keyCode)
-       => (_stateProvider.CurrentStates[keyCode] & 0x80) != 0;
-
-    private bool IsKeyPressed(ushort keyCode)
-        => (_stateProvider.CurrentStates[keyCode] & 0x80) != 0 && (_stateProvider.PreviousStates[keyCode] & 0x80) == 0;
-
-    private bool IsKeyReleased(ushort keyCode)
-        => (_stateProvider.CurrentStates[keyCode] & 0x80) == 0 && (_stateProvider.PreviousStates[keyCode] & 0x80) != 0;
+        => _stateProvider.IsTogglableKeyOn(_keyCodes[Key.ScrollLock]);
 
     private bool IsAnyKeyFiltered(Func<ushort, bool> filter)
         => _keyCodes.Values.Any(filter);

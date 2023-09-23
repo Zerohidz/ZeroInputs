@@ -7,11 +7,10 @@ internal sealed class WindowsInputStateProvider : IInputStateProvider
     internal const int VirtualKeyCount = 256;
     private const string User32 = "user32.dll";
 
-    public byte[] PreviousStates { get; } = new byte[VirtualKeyCount];
-    public byte[] CurrentStates { get; } = new byte[VirtualKeyCount];
+    private byte[] PreviousStates { get; } = new byte[VirtualKeyCount];
+    private byte[] CurrentStates { get; } = new byte[VirtualKeyCount];
 
     // @alihakankurt TODO: Extract library imports to a seperate class and make it static to avoid multiple imports.
-    // @zerohidz TODO: Create a method like IsDown(ushort keyCode) in WindowsInputStateProvider to prevent code repetitions.
     #region LibraryImports
     [DllImport(User32)]
     private static extern bool GetKeyboardState(byte[] keys);
@@ -28,5 +27,19 @@ internal sealed class WindowsInputStateProvider : IInputStateProvider
         CurrentStates.CopyTo(PreviousStates, 0);
         GetKeyboardState(CurrentStates);
     }
+    #endregion
+
+    #region KeyInformation
+    public bool IsKeyDown(ushort keyCode)
+       => (CurrentStates[keyCode] & 0x80) != 0;
+
+    public bool IsKeyPressed(ushort keyCode)
+        => (CurrentStates[keyCode] & 0x80) != 0 && (PreviousStates[keyCode] & 0x80) == 0;
+
+    public bool IsKeyReleased(ushort keyCode)
+        => (CurrentStates[keyCode] & 0x80) == 0 && (PreviousStates[keyCode] & 0x80) != 0;
+
+    public bool IsTogglableKeyOn(ushort keyCode)
+        => (CurrentStates[keyCode] & 0x0001) != 0;
     #endregion
 }
