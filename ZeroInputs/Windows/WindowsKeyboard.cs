@@ -1,11 +1,7 @@
-﻿using System.Runtime.InteropServices;
-using ZeroInputs.Windows.Exceptions;
-
-namespace ZeroInputs.Windows;
+﻿namespace ZeroInputs.Windows;
 
 internal sealed class WindowsKeyboard : IKeyboard
 {
-    private const string User32 = "user32.dll";
     private const string IgnoredChars = "\r";
 
     private static readonly Dictionary<Key, ushort> _keyCodes = new()
@@ -176,26 +172,6 @@ internal sealed class WindowsKeyboard : IKeyboard
 
     private readonly WindowsInputStateProvider _stateProvider;
 
-    #region LibraryImports
-    [DllImport(User32)]
-    public static extern short VkKeyScanEx(char ch, IntPtr dwhkl);
-
-    [DllImport(User32)]
-    public static extern IntPtr GetForegroundWindow();
-
-    [DllImport(User32)]
-    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-    [DllImport(User32)]
-    public static extern uint GetKeyboardLayout(uint idThread);
-
-    [DllImport(User32)]
-    private static extern uint SendInput(uint nInputs, KeyboardInput[] pInputs, int cbSize);
-
-    [DllImport(User32)]
-    private static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
-    #endregion
-
     #region EssentialFunctions
     public WindowsKeyboard(WindowsInputStateProvider stateProvider)
     {
@@ -274,23 +250,10 @@ internal sealed class WindowsKeyboard : IKeyboard
         return result;
     }
 
-    private uint GetKeyboardLocaleId()
-    {
-        IntPtr hWindowHandle = GetForegroundWindow();
-        uint dwThreadId = GetWindowThreadProcessId(hWindowHandle, out _);
-        return GetKeyboardLayout(dwThreadId);
-    }
-
     private ushort CharToVirtualKeyCode(char key)
     {
-        if (char.IsUpper(key)) key = char.ToLower(key);
-
-        uint keyboardLocaleId = GetKeyboardLocaleId();
-        short vKeyCode = VkKeyScanEx(key, (nint)keyboardLocaleId);
-        if ((vKeyCode < 256 && -1 < vKeyCode) == false)
-            throw new KeyCodeOfCharNotFoundException();
-
-        return (ushort)vKeyCode;
+        key = char.ToLower(key);
+        return WinApi.ScanVirtualKey(key);
     }
     #endregion
 
@@ -301,7 +264,7 @@ internal sealed class WindowsKeyboard : IKeyboard
         for (int i = 0; i < text.Length * 2; i++)
             ConfigureInput(ref inputs[i], text[i / 2], keyUp: i % 2 != 0);
 
-        SendInputs(inputs);
+        WinApi.SendInput(inputs);
     }
 
     public void PressKey(char key)
@@ -312,7 +275,7 @@ internal sealed class WindowsKeyboard : IKeyboard
         var inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key);
 
-        SendInputs(inputs);
+        WinApi.SendInput(inputs);
     }
 
     public void PressKey(Key key)
@@ -320,7 +283,7 @@ internal sealed class WindowsKeyboard : IKeyboard
         var inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key);
 
-        SendInputs(inputs);
+        WinApi.SendInput(inputs);
     }
 
     public void ReleaseKey(char key)
@@ -331,7 +294,7 @@ internal sealed class WindowsKeyboard : IKeyboard
         var inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key, keyUp: true);
 
-        SendInputs(inputs);
+        WinApi.SendInput(inputs);
     }
 
     public void ReleaseKey(Key key)
@@ -339,7 +302,7 @@ internal sealed class WindowsKeyboard : IKeyboard
         var inputs = new KeyboardInput[1];
         ConfigureInput(ref inputs[0], key, keyUp: true);
 
-        SendInputs(inputs);
+        WinApi.SendInput(inputs);
     }
 
     public void SendKey(char key)
@@ -351,7 +314,7 @@ internal sealed class WindowsKeyboard : IKeyboard
         ConfigureInput(ref inputs[0], key);
         ConfigureInput(ref inputs[1], key, keyUp: true);
 
-        SendInputs(inputs);
+        WinApi.SendInput(inputs);
     }
 
     public void SendKey(Key key)
@@ -360,17 +323,11 @@ internal sealed class WindowsKeyboard : IKeyboard
         ConfigureInput(ref inputs[0], key);
         ConfigureInput(ref inputs[1], key, keyUp: true);
 
-        SendInputs(inputs);
+        WinApi.SendInput(inputs);
     }
 
     private static bool IsIgnoredChar(char key)
         => IgnoredChars.Contains(key);
-
-    private static void SendInputs(KeyboardInput[] inputs)
-    {
-        if (SendInput((uint)inputs.Length, inputs, 40) == 0)
-            throw new SendInputException();
-    }
 
     private void ConfigureInput(ref KeyboardInput input, Key key, bool keyUp = false)
         => ConfigureForVirtualKey(ref input, _keyCodes[key], keyUp);
