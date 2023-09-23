@@ -1,12 +1,8 @@
-﻿using System.Runtime.InteropServices;
-using ZeroInputs.Windows.Exceptions;
-
-namespace ZeroInputs.Windows;
+﻿namespace ZeroInputs.Windows;
 
 internal sealed class WindowsMouse : IMouse
 {
     private const int WheelDelta = 120;
-    private const string User32 = "user32.dll";
 
     private readonly WindowsInputStateProvider _stateProvider;
     private static readonly Dictionary<MouseButton, ushort> _buttonKeyCodes = new()
@@ -28,19 +24,6 @@ internal sealed class WindowsMouse : IMouse
         {MouseButton.Right, MouseEventFlags.RightUp},
     };
 
-    #region LibraryImports
-    [DllImport(User32)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetCursorPos(int x, int y);
-
-    [DllImport(User32)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetCursorPos(out Point lpMousePoint);
-
-    [DllImport(User32)]
-    private static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
-    #endregion
-
     #region EssentialMethods
     public WindowsMouse(WindowsInputStateProvider stateProvider)
     {
@@ -54,9 +37,8 @@ internal sealed class WindowsMouse : IMouse
     #endregion
 
     #region MouseInformation
-    public Point Position => GetCursorPos(out var currentMousePoint)
-        ? currentMousePoint
-        : throw new CouldNotGetMousePositionException();
+    public Point Position => WinApi.GetCursorPosition();
+
     public bool IsButtonDown(MouseButton button)
            => _stateProvider.IsKeyDown(_buttonKeyCodes[button]);
 
@@ -72,10 +54,10 @@ internal sealed class WindowsMouse : IMouse
 
     #region MouseSimulation
     public void MoveTo(int x, int y)
-        => SetCursorPos(x, y);
+        => WinApi.SetCursorPosition(x, y);
 
     public void MoveTo(Point point)
-        => SetCursorPos(point.X, point.Y);
+        => WinApi.SetCursorPosition(point.X, point.Y);
 
     public void PressButton(MouseButton button)
         => DoMouseEvent(_buttonDownFlags[button]);
@@ -104,12 +86,12 @@ internal sealed class WindowsMouse : IMouse
     public void Scroll(int distance)
     {
         int multipliedDistance = distance * WheelDelta;
-        mouse_event((int)MouseEventFlags.Wheel, 0, 0, multipliedDistance, 0);
+        WinApi.MouseEvent((int)MouseEventFlags.Wheel, 0, 0, multipliedDistance, 0);
     }
 
     private void DoMouseEvent(MouseEventFlags flag)
     {
-        mouse_event((int)flag, 0, 0, 0, 0);
+        WinApi.MouseEvent((int)flag, 0, 0, 0, 0);
     }
 
     private void DoMouseEvent(MouseEventFlags flag, Point position)
